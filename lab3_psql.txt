@@ -1,0 +1,165 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+postgres=# psql -U postgres
+postgres-# CREATE DATABASE mydb;
+ОШИБКА:  ошибка синтаксиса (примерное положение: "psql")
+LINE 1: psql -U postgres
+        ^
+postgres=# psql -U postgres -d mydb -h localhost -p 5432
+postgres-# psql -h localhost -U postgres -d mydb
+postgres-# \l
+                                                                 List of databases
+   Name    |  Owner   | Encoding | Locale Provider |         Collate         |          Ctype          | Locale | ICU Rules |   Access privileges
+-----------+----------+----------+-----------------+-------------------------+-------------------------+--------+-----------+-----------------------
+ mydb      | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ postgres  | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ template0 | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           | =c/postgres          +
+           |          |          |                 |                         |                         |        |           | postgres=CTc/postgres
+ template1 | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           | =c/postgres          +
+           |          |          |                 |                         |                         |        |           | postgres=CTc/postgres
+(4 rows)
+
+
+postgres-# \c postgres
+You are now connected to database "postgres" as user "postgres".
+postgres-# \c mydb
+You are now connected to database "mydb" as user "postgres".
+mydb-# \dt
+            List of tables
+ Schema |   Name   | Type  |  Owner
+--------+----------+-------+----------
+ public | students | table | postgres
+(1 row)
+
+
+mydb-# \h SELECT
+Command:     SELECT
+Description: retrieve rows from a table or view
+Syntax:
+[ WITH [ RECURSIVE ] with_query [, ...] ]
+SELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]
+    [ { * | expression [ [ AS ] output_name ] } [, ...] ]
+    [ FROM from_item [, ...] ]
+    [ WHERE condition ]
+    [ GROUP BY [ ALL | DISTINCT ] grouping_element [, ...] ]
+    [ HAVING condition ]
+    [ WINDOW window_name AS ( window_definition ) [, ...] ]
+    [ { UNION | INTERSECT | EXCEPT } [ ALL | DISTINCT ] select ]
+    [ ORDER BY expression [ ASC | DESC | USING operator ] [ NULLS { FIRST | LAST } ] [, ...] ]
+    [ LIMIT { count | ALL } ]
+    [ OFFSET start [ ROW | ROWS ] ]
+    [ FETCH { FIRST | NEXT } [ count ] { ROW | ROWS } { ONLY | WITH TIES } ]    [ FOR { UPDATE | NO KEY UPDATE | SHARE | KEY SHARE } [ OF from_reference [, ...] ] [ NOWAIT | SKIP LOCKED ] [...] ]
+
+where from_item can be one of:
+
+    [ ONLY ] table_name [ * ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+                [ TABLESAMPLE sampling_method ( argument [, ...] ) [ REPEATABLE ( seed ) ] ]
+    [ LATERAL ] ( select ) [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+    with_query_name [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+    [ LATERAL ] function_name ( [ argument [, ...] ] )
+                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+    [ LATERAL ] function_name ( [ argument [, ...] ] ) [ AS ] alias ( column_definition [, ...] )
+    [ LATERAL ] function_name ( [ argument [, ...] ] ) AS ( column_definition [, ...] )
+    [ LATERAL ] ROWS FROM( function_name ( [ argument [, ...] ] ) [ AS ( column_definition [, ...] ) ] [, ...] )
+                [ WITH ORDINALITY ] [ [ AS ] alias [ ( column_alias [, ...] ) ] ]
+    from_item join_type from_item { ON join_condition | USING ( join_column [, ...] ) [ AS join_using_alias ] }
+    from_item NATURAL join_type from_item
+    from_item CROSS JOIN from_item
+
+and grouping_element can be one of:
+
+    ( )
+    expression
+    ( expression [, ...] )
+    ROLLUP ( { expression | ( expression [, ...] ) } [, ...] )
+    CUBE ( { expression | ( expression [, ...] ) } [, ...] )
+    GROUPING SETS ( grouping_element [, ...] )
+
+and with_query is:
+
+    with_query_name [ ( column_name [, ...] ) ] AS [ [ NOT ] MATERIALIZED ] ( select | values | insert | update | delete | merge )
+        [ SEARCH { BREADTH | DEPTH } FIRST BY column_name [, ...] SET search_seq_col_name ]
+        [ CYCLE column_name [, ...] SET cycle_mark_col_name [ TO cycle_mark_value DEFAULT cycle_mark_default ] USING cycle_path_col_name ]
+
+TABLE [ ONLY ] table_name [ * ]
+
+URL: https://www.postgresql.org/docs/18/sql-select.html
+
+
+mydb-#
+mydb-# CREATE TABLE students (id SERIAL PRIMARY KEY, name VARCHAR(100), age INT);
+ОШИБКА:  ошибка синтаксиса (примерное положение: "psql")
+LINE 1: psql -U postgres -d mydb -h localhost -p 5432
+        ^
+mydb=# CREATE TABLE students (id SERIAL PRIMARY KEY, name VARCHAR(100), age INT);
+ОШИБКА:  отношение "students" уже существует
+mydb=# \dt
+            List of tables
+ Schema |   Name   | Type  |  Owner
+--------+----------+-------+----------
+ public | students | table | postgres
+(1 row)
+
+
+mydb=# \d students
+                                    Table "public.students"
+ Column |          Type          | Collation | Nullable |               Default
+--------+------------------------+-----------+----------+--------------------------------------
+ id     | integer                |           | not null | nextval('students_id_seq'::regclass)
+ name   | character varying(100) |           |          |
+ age    | integer                |           |          |
+Indexes:
+    "students_pkey" PRIMARY KEY, btree (id)
+
+
+mydb=# INSERT INTO students (name, age) VALUES ('Alice', 21), ('Bob', 23);
+INSERT 0 2
+mydb=# SELECT * FROM students;
+ id | name  | age
+----+-------+-----
+  1 | Alice |  21
+  2 | Bob   |  23
+  3 | Alice |  21
+  4 | Bob   |  23
+(4 rows)
+
+
+mydb=# SELECT * FROM students;
+ id | name  | age
+----+-------+-----
+  1 | Alice |  21
+  2 | Bob   |  23
+  3 | Alice |  21
+  4 | Bob   |  23
+(4 rows)
+
+
+mydb=# DROP TABLE students;
+DROP TABLE
+mydb=# CREATE TABLE students (id SERIAL PRIMARY KEY, name VARCHAR(100), age INT);
+CREATE TABLE
+mydb=# INSERT INTO students (name, age) VALUES ('Alice', 21), ('Bob', 23);
+INSERT 0 2
+mydb=# SELECT * FROM students;
+ id | name  | age
+----+-------+-----
+  1 | Alice |  21
+  2 | Bob   |  23
+(2 rows)
+
+
+mydb=# DROP TABLE students;
+DROP TABLE
+mydb=# \dt
+Did not find any tables.
+mydb=#
