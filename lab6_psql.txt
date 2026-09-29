@@ -1,0 +1,164 @@
+Server [localhost]:
+Database [postgres]: university
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+university=# \dt
+Did not find any tables.
+university=# CREATE TABLE students (student_id SERIAL PRIMARY KEY, first_name VARCHAR(50) NOT NULL,last_name VARCHAR(50) NOT NULL,email VARCHAR(100) UNIQUE NOT NULL,faculty VARCHAR(100));
+CREATE TABLE
+university=# \d students
+                                          Table "public.students"
+   Column   |          Type          | Collation | Nullable |                   Default
+------------+------------------------+-----------+----------+----------------------------------------------
+ student_id | integer                |           | not null | nextval('students_student_id_seq'::regclass)
+ first_name | character varying(50)  |           | not null |
+ last_name  | character varying(50)  |           | not null |
+ email      | character varying(100) |           | not null |
+ faculty    | character varying(100) |           |          |
+Indexes:
+    "students_pkey" PRIMARY KEY, btree (student_id)
+    "students_email_key" UNIQUE CONSTRAINT, btree (email)
+
+
+university=# INSERT INTO students (first_name, last_name, email, faculty) VALUES ('Nigora', 'Baimatova', 'bn12455@auca.kg', 'AMI');
+INSERT 0 1
+university=# INSERT INTO students(first_name, last_name, email, faculty) VALUES ('Luna', 'Maltseva', 'ml12366@auca.kg', 'SW');
+INSERT 0 1
+university=# INSERT INTO students(first_name, last_name, email, faculty) VALUES ('Tina', 'Hunter', 'tina0510@gmail.com', 'BA');
+INSERT 0 1
+university=# INSERT INTO students (first_name, last_name, email, faculty) VALUES ('Timur', 'Bekov', 'alymbek@example.com', 'MED');
+INSERT 0 1
+university=# INSERT INTO students (last_name, email) VALUES ('Bekov', 'timur@example.com');
+ОШИБКА:  значение NULL в столбце "first_name" отношения "students" нарушает ограничение NOT NULL
+DETAIL:  Ошибочная строка содержит (5, null, Bekov, timur@example.com, null).
+university=# SELECT * FROM students;
+ student_id | first_name | last_name |        email        | faculty
+------------+------------+-----------+---------------------+---------
+          1 | Nigora     | Baimatova | bn12455@auca.kg     | AMI
+          2 | Luna       | Maltseva  | ml12366@auca.kg     | SW
+          3 | Tina       | Hunter    | tina0510@gmail.com  | BA
+          4 | Timur      | Bekov     | alymbek@example.com | MED
+(4 rows)
+
+
+university=# DROP TABLE test_table;
+ОШИБКА:  таблица "test_table" не существует
+university=# DROP TABLE IF EXISTS test_table;
+ЗАМЕЧАНИЕ:  таблица "test_table" не существует, пропускается
+DROP TABLE
+university=# ALTER TABLE students ADD COLUMN date_of_birth DATE;
+ALTER TABLE
+university=#
+university=# ALTER TABLE students DROP COLUMN faculty;
+ALTER TABLE
+university=# ALTER TABLE students ALTER COLUMN first_name TYPE TEXT;
+ALTER TABLE
+university=# ALTER TABLE students ADD CONSTRAINT unique_student_email UNIQUE (email);
+ALTER TABLE
+university=# ALTER TABLE students RENAME COLUMN email TO email_address;
+ALTER TABLE
+university=# ALTER TABLE students RENAME TO university_students;
+ALTER TABLE
+university=# \dt
+                 List of tables
+ Schema |        Name         | Type  |  Owner
+--------+---------------------+-------+----------
+ public | university_students | table | postgres
+(1 row)
+
+
+university=# \d university_students
+                                      Table "public.university_students"
+    Column     |          Type          | Collation | Nullable |                   Default
+---------------+------------------------+-----------+----------+----------------------------------------------
+ student_id    | integer                |           | not null | nextval('students_student_id_seq'::regclass)
+ first_name    | text                   |           | not null |
+ last_name     | character varying(50)  |           | not null |
+ email_address | character varying(100) |           | not null |
+ date_of_birth | date                   |           |          |
+Indexes:
+    "students_pkey" PRIMARY KEY, btree (student_id)
+    "students_email_key" UNIQUE CONSTRAINT, btree (email_address)
+    "unique_student_email" UNIQUE CONSTRAINT, btree (email_address)
+
+
+university=# CREATE TEMP TABLE temp_results (student_id INT, score INT);
+CREATE TABLE
+university=# \dt
+                   List of tables
+   Schema   |        Name         | Type  |  Owner
+------------+---------------------+-------+----------
+ pg_temp_15 | temp_results        | table | postgres
+ public     | university_students | table | postgres
+(2 rows)
+
+
+university=# SELECT * FROM university_students;
+ student_id | first_name | last_name |    email_address    | date_of_birth
+------------+------------+-----------+---------------------+---------------
+          1 | Nigora     | Baimatova | bn12455@auca.kg     |
+          2 | Luna       | Maltseva  | ml12366@auca.kg     |
+          3 | Tina       | Hunter    | tina0510@gmail.com  |
+          4 | Timur      | Bekov     | alymbek@example.com |
+(4 rows)
+
+
+university=# ALTER TABLE university_students DROP COLUMN date_of_birth;
+ALTER TABLE
+university=# ALTER TABLE university_students RENAME student_id TO rank;
+ALTER TABLE
+university=# SELECT * FROM univeristy_students;
+ОШИБКА:  отношение "univeristy_students" не существует
+LINE 1: SELECT * FROM univeristy_students;
+                      ^
+university=# SELECT * FROM university_students;
+ rank | first_name | last_name |    email_address
+------+------------+-----------+---------------------
+    1 | Nigora     | Baimatova | bn12455@auca.kg
+    2 | Luna       | Maltseva  | ml12366@auca.kg
+    3 | Tina       | Hunter    | tina0510@gmail.com
+    4 | Timur      | Bekov     | alymbek@example.com
+(4 rows)
+
+
+university=# \q
+
+Server [localhost]:
+Database [postgres]: university
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+university=# \dt
+                 List of tables
+ Schema |        Name         | Type  |  Owner
+--------+---------------------+-------+----------
+ public | university_students | table | postgres
+(1 row)
+
+
+university=# SELECT * FROM university_students;
+ rank | first_name | last_name |    email_address
+------+------------+-----------+---------------------
+    1 | Nigora     | Baimatova | bn12455@auca.kg
+    2 | Luna       | Maltseva  | ml12366@auca.kg
+    3 | Tina       | Hunter    | tina0510@gmail.com
+    4 | Timur      | Bekov     | alymbek@example.com
+(4 rows)
+
+
+university=# \q
