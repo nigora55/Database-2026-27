@@ -1,0 +1,400 @@
+Server [localhost]:
+Database [postgres]: university
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+university=#
+university=# -- Method 1: column-level constraint
+university=# CREATE TABLE students_v1 (
+university(#     student_id INTEGER PRIMARY KEY,
+university(#     name       VARCHAR(100),
+university(#     email      VARCHAR(150)
+university(# );
+CREATE TABLE
+university=# -- Method 2: table-level constraint
+university=# CREATE TABLE students_v2 (
+university(#     student_id INTEGER,
+university(#     name       VARCHAR(100),
+university(#     email      VARCHAR(150),
+university(#     PRIMARY KEY (student_id)
+university(# );
+CREATE TABLE
+university=# -- Method 3: named constraint
+university=# CREATE TABLE students_v3 (
+university(#     student_id INTEGER,
+university(#     name       VARCHAR(100),
+university(#     email      VARCHAR(150),
+university(#     CONSTRAINT pk_students_v3 PRIMARY KEY (student_id)
+university(# )
+university-# ;
+CREATE TABLE
+university=# -- Method 4: add primary key to an existing table
+university=# CREATE TABLE students_v4 (
+university(#     student_id INTEGER,
+university(#     name       VARCHAR(100),
+university(#     email      VARCHAR(150)
+university(# );
+CREATE TABLE
+university=# ALTER TABLE students_v4 ADD CONSTRAINT pk_students_v4 PRIMARY KEY (student_id);
+ALTER TABLE
+university=# -- EXPECTED ERROR: a table can have only ONE primary key
+university=# CREATE TABLE teachers (
+university(#     teacher_id INTEGER PRIMARY KEY,
+university(#     email      VARCHAR(150)
+university(# );
+CREATE TABLE
+university=# ALTER TABLE teachers ADD PRIMARY KEY (email);
+ОШИБКА:  таблица "teachers" не может иметь несколько первичных ключей
+university=# -- EXPECTED ERROR: cannot add a primary key if the column already has duplicates
+university=# CREATE TABLE rooms (
+university(#     room_no  INTEGER,
+university(#     building VARCHAR(10)
+university(# );
+CREATE TABLE
+university=# INSERT INTO rooms VALUES (101, 'A'), (101, 'B'), (102, 'A');
+INSERT 0 3
+university=# ALTER TABLE rooms ADD PRIMARY KEY (room_no);
+ОШИБКА:  создать уникальный индекс "rooms_pkey" не удалось
+DETAIL:  Ключ (room_no)=(101) дублируется.
+university=# ALTER TABLE rooms ADD CONSTRAINT pk_rooms PRIMARY KEY (room_no, building);
+ALTER TABLE
+university=# \d rooms
+                       Table "public.rooms"
+  Column  |         Type          | Collation | Nullable | Default
+----------+-----------------------+-----------+----------+---------
+ room_no  | integer               |           | not null |
+ building | character varying(10) |           | not null |
+Indexes:
+    "pk_rooms" PRIMARY KEY, btree (room_no, building)
+
+
+university=# CREATE TABLE students (
+university(#     student_id SERIAL PRIMARY KEY,
+university(#     name VARCHAR(100) NOT NULL,
+university(#     email VARCHAR(150) UNIQUE,
+university(#     faculty VARCHAR(50)
+university(# );
+CREATE TABLE
+university=# INSERT INTO students (name, email, faculty) VALUES
+university-#     ('Alice Johnson', 'alice@alatoo.edu.kg', 'Computer Science'),
+university-#     ('Bob Smith', 'bob@alatoo.edu.kg', 'Mathematics'),
+university-#     ('Carol Davis', 'carol@alatoo.edu.kg', 'Computer Science');
+INSERT 0 3
+university=# SELECT * FROM students;
+ student_id |     name      |        email        |     faculty
+------------+---------------+---------------------+------------------
+          1 | Alice Johnson | alice@alatoo.edu.kg | Computer Science
+          2 | Bob Smith     | bob@alatoo.edu.kg   | Mathematics
+          3 | Carol Davis   | carol@alatoo.edu.kg | Computer Science
+(3 rows)
+
+
+university=# UPDATE students SET faculty = 'Software Engineering' WHERE student_id = 4;
+UPDATE 0
+university=# DELETE FROM students WHERE student_id = 2;
+DELETE 1
+university=# SELECT * FROM students;
+ student_id |     name      |        email        |     faculty
+------------+---------------+---------------------+------------------
+          1 | Alice Johnson | alice@alatoo.edu.kg | Computer Science
+          3 | Carol Davis   | carol@alatoo.edu.kg | Computer Science
+(2 rows)
+
+
+university=# INSERT INTO students (name, email, faculty) VALUES ('Timur Asanov', 'timur@alatoo.edu.kg', 'Mathematics');
+INSERT 0 1
+university=# SELECT * FROM students;
+ student_id |     name      |        email        |     faculty
+------------+---------------+---------------------+------------------
+          1 | Alice Johnson | alice@alatoo.edu.kg | Computer Science
+          3 | Carol Davis   | carol@alatoo.edu.kg | Computer Science
+          4 | Timur Asanov  | timur@alatoo.edu.kg | Mathematics
+(3 rows)
+
+
+university=# CREATE TABLE course_enrollments (
+university(#     student_id INTEGER,
+university(#     course_id INTEGER,
+university(#     semester VARCHAR(20),
+university(#     enrollment_date DATE DEFAULT CURRENT_DATE,
+university(#     grade CHAR(2),
+university(#     PRIMARY KEY (student_id, course_id, semester)
+university(# );
+CREATE TABLE
+university=# INSERT INTO course_enrollments (student_id, course_id, semester, grade) VALUES
+university-#     (1, 101, '2024-Spring', 'A'),
+university-#     (1, 102, '2024-Spring', 'B+'),
+university-#     (2, 101, '2024-Spring', 'A-'),
+university-#     (1, 101, '2024-Fall', 'A+');
+INSERT 0 4
+university=# SELECT * FROM course_enrollments;
+ student_id | course_id |  semester   | enrollment_date | grade
+------------+-----------+-------------+-----------------+-------
+          1 |       101 | 2024-Spring | 2026-10-06      | A
+          1 |       102 | 2024-Spring | 2026-10-06      | B+
+          2 |       101 | 2024-Spring | 2026-10-06      | A-
+          1 |       101 | 2024-Fall   | 2026-10-06      | A+
+(4 rows)
+
+university=# --my example
+university=# CREATE TABLE schedule (
+university(#     room_no INTEGER,
+university(#     day_of_week VARCHAR(10),
+university(#     lesson_no INTEGER,
+university(#     subject VARCHAR(100),
+university(#     CONSTRAINT pk_schedule PRIMARY KEY (room_no, day_of_week, lesson_no)
+university(# );
+CREATE TABLE
+university=# INSERT INTO schedule VALUES
+university-#     (205, 'Monday', 1, 'Databases'),
+university-#     (205, 'Monday', 2, 'Mathematics'),
+university-#     (205, 'Tuesday', 1, 'Physics');
+INSERT 0 3
+university=# SELECT * FROM schedule;
+ room_no | day_of_week | lesson_no |   subject
+---------+-------------+-----------+-------------
+     205 | Monday      |         1 | Databases
+     205 | Monday      |         2 | Mathematics
+     205 | Tuesday     |         1 | Physics
+(3 rows)
+
+
+university=# INSERT INTO schedule VALUES (205, 'Monday', 3, 'English');
+INSERT 0 1
+university=# SELECT * FROM schedule;
+ room_no | day_of_week | lesson_no |   subject
+---------+-------------+-----------+-------------
+     205 | Monday      |         1 | Databases
+     205 | Monday      |         2 | Mathematics
+     205 | Tuesday     |         1 | Physics
+     205 | Monday      |         3 | English
+(4 rows)
+
+
+university=# \d schedule
+                        Table "public.schedule"
+   Column    |          Type          | Collation | Nullable | Default
+-------------+------------------------+-----------+----------+---------
+ room_no     | integer                |           | not null |
+ day_of_week | character varying(10)  |           | not null |
+ lesson_no   | integer                |           | not null |
+ subject     | character varying(100) |           |          |
+Indexes:
+    "pk_schedule" PRIMARY KEY, btree (room_no, day_of_week, lesson_no)
+
+
+university=# CREATE TABLE products (
+university(#     product_id SERIAL PRIMARY KEY,
+university(#     product_name VARCHAR(100) NOT NULL,
+university(#     price DECIMAL(10,2)
+university(# );
+CREATE TABLE
+university=# \d products
+                                           Table "public.products"
+    Column    |          Type          | Collation | Nullable |                   Default
+--------------+------------------------+-----------+----------+----------------------------------------------
+ product_id   | integer                |           | not null | nextval('products_product_id_seq'::regclass)
+ product_name | character varying(100) |           | not null |
+ price        | numeric(10,2)          |           |          |
+Indexes:
+    "products_pkey" PRIMARY KEY, btree (product_id)
+
+
+university=# INSERT INTO products (product_name, price) VALUES ('Laptop', 65000.00), ('Mouse', 800.00);
+INSERT 0 2
+university=# SELECT * FROM products;
+ product_id | product_name |  price
+------------+--------------+----------
+          1 | Laptop       | 65000.00
+          2 | Mouse        |   800.00
+(2 rows)
+
+
+university=# SELECT pg_get_serial_sequence('products', 'product_id');
+     pg_get_serial_sequence
+--------------------------------
+ public.products_product_id_seq
+(1 row)
+
+
+university=# SELECT last_value FROM products_product_id_seq;      
+ last_value
+------------
+          2
+(1 row)
+
+
+university=#
+university=# INSERT INTO products (product_name, price) VALUES ('Keyboard', 2500.00);
+INSERT 0 1
+university=# SELECT * FROM products;
+ product_id | product_name |  price
+------------+--------------+----------
+          1 | Laptop       | 65000.00
+          2 | Mouse        |   800.00
+          3 | Keyboard     |  2500.00
+(3 rows)
+
+
+university=# SELECT last_value FROM products_product_id_seq;      
+ last_value
+------------
+          3
+(1 row)
+
+
+university=# CREATE TABLE transactions (
+university(#     transaction_id BIGSERIAL PRIMARY KEY,
+university(#     amount DECIMAL(15,2),
+university(#     transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+university(# );
+CREATE TABLE
+university=# INSERT INTO transactions (amount) VALUES (1500.00), (250.50), (9999.99);
+INSERT 0 3
+university=# SELECT * FROM transactions;
+ transaction_id | amount  |      transaction_date
+----------------+---------+----------------------------
+              1 | 1500.00 | 2026-10-06 09:25:07.887926
+              2 |  250.50 | 2026-10-06 09:25:07.887926
+              3 | 9999.99 | 2026-10-06 09:25:07.887926
+(3 rows)
+
+
+university=# CREATE TABLE orders (
+university(#     order_id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+university(#     customer_name VARCHAR(100),
+university(#     order_date DATE DEFAULT CURRENT_DATE
+university(# );
+CREATE TABLE
+university=# INSERT INTO orders (customer_name) VALUES ('Aibek'), ('Dana');
+INSERT 0 2
+university=# SELECT * FROM orders;
+ order_id | customer_name | order_date
+----------+---------------+------------
+        1 | Aibek         | 2026-10-06
+        2 | Dana          | 2026-10-06
+(2 rows)
+
+
+university=# CREATE TABLE customers (
+university(#     customer_id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+university(#     customer_name VARCHAR(100),
+university(#     email VARCHAR(150)
+university(# );
+CREATE TABLE
+university=# INSERT INTO customers (customer_id, customer_name, email) VALUES (1000, 'VIP Customer', 'vip@example.com');
+INSERT 0 1
+university=# SELECT * FROM customers;
+ customer_id | customer_name |      email
+-------------+---------------+-----------------
+        1000 | VIP Customer  | vip@example.com
+(1 row)
+
+
+university=# INSERT INTO customers (customer_name, email) VALUES ('Regular Customer', 'regular@example.com');
+INSERT 0 1
+university=# SELECT * FROM customers;
+ customer_id |  customer_name   |        email
+-------------+------------------+---------------------
+        1000 | VIP Customer     | vip@example.com
+           1 | Regular Customer | regular@example.com
+(2 rows)
+
+
+university=# INSERT INTO customers (customer_id, customer_name) VALUES (2, 'Manual id 2');
+INSERT 0 1
+university=# SELECT * FROM customers;
+ customer_id |  customer_name   |        email
+-------------+------------------+---------------------
+        1000 | VIP Customer     | vip@example.com
+           1 | Regular Customer | regular@example.com
+           2 | Manual id 2      |
+(3 rows)
+
+
+university=# CREATE TABLE departments (
+university(#     dept_id INTEGER PRIMARY KEY,
+university(#     dept_name VARCHAR(100)
+university(# );
+CREATE TABLE
+university=# INSERT INTO departments VALUES (1, 'Computer Science');
+INSERT 0 1
+university=# SELECT * FROM departments;
+ dept_id |    dept_name
+---------+------------------
+       1 | Computer Science
+(1 row)
+
+
+university=#
+university=# -- ERROR: duplicate key
+university=# INSERT INTO departments VALUES (1, 'Mathematics');
+ОШИБКА:  повторяющееся значение ключа нарушает ограничение уникальности "departments_pkey"
+DETAIL:  Ключ "(dept_id)=(1)" уже существует.
+university=# SELECT * FROM departments;
+ dept_id |    dept_name
+---------+------------------
+       1 | Computer Science
+(1 row)
+
+
+university=#
+university=# -- ERROR: NULL
+university=# INSERT INTO departments VALUES (NULL, 'Physics');
+ОШИБКА:  значение NULL в столбце "dept_id" отношения "departments" нарушает ограничение NOT NULL
+DETAIL:  Ошибочная строка содержит (null, Physics).
+university=# SELECT * FROM departments;
+ dept_id |    dept_name
+---------+------------------
+       1 | Computer Science
+(1 row)
+
+
+university=# INSERT INTO departments VALUES (2, 'Mathematics'), (3, 'Physics');
+INSERT 0 2
+university=# SELECT * FROM departments;
+ dept_id |    dept_name
+---------+------------------
+       1 | Computer Science
+       2 | Mathematics
+       3 | Physics
+(3 rows)
+
+
+university=# \d departments
+                     Table "public.departments"
+  Column   |          Type          | Collation | Nullable | Default
+-----------+------------------------+-----------+----------+---------
+ dept_id   | integer                |           | not null |
+ dept_name | character varying(100) |           |          |
+Indexes:
+    "departments_pkey" PRIMARY KEY, btree (dept_id)
+
+
+university=# SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'departments';
+    indexname     |                                     indexdef
+------------------+----------------------------------------------------------------------------------
+ departments_pkey | CREATE UNIQUE INDEX departments_pkey ON public.departments USING btree (dept_id)
+(1 row)
+
+
+university=# \d departaments
+Did not find any relation named "departaments".
+university=# \d departments
+                     Table "public.departments"
+  Column   |          Type          | Collation | Nullable | Default
+-----------+------------------------+-----------+----------+---------
+ dept_id   | integer                |           | not null |
+ dept_name | character varying(100) |           |          |
+Indexes:
+    "departments_pkey" PRIMARY KEY, btree (dept_id)
+
+
+university=#
