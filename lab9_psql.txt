@@ -1,0 +1,1112 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+postgres=# CREATE DATABASE lab9;
+CREATE DATABASE
+postgres=# \c lab9
+You are now connected to database "lab9" as user "postgres".
+lab9=# DROP TABLE IF EXISTS enrollments, courses, professors, students CASCADE;
+ЗАМЕЧАНИЕ:  таблица "enrollments" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "courses" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "professors" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "students" не существует, пропускается
+DROP TABLE
+lab9=# CREATE TABLE students (
+lab9(#     student_id    SERIAL PRIMARY KEY,           -- key attribute (PK)
+lab9(#     first_name    VARCHAR(50)  NOT NULL,        -- simple attribute
+lab9(#     last_name     VARCHAR(50)  NOT NULL,        -- simple attribute
+lab9(#     email         VARCHAR(100) UNIQUE NOT NULL,
+lab9(#     date_of_birth DATE,                         -- used to derive age
+lab9(#     faculty       VARCHAR(100),
+lab9(#     street        VARCHAR(100),                 -- composite attribute "address"
+lab9(#     city          VARCHAR(50),                  --   is divided into
+lab9(#     zip_code      VARCHAR(10)                   --   three simple columns
+lab9(# );
+CREATE TABLE
+lab9=# \d students
+                                           Table "public.students"
+    Column     |          Type          | Collation | Nullable |                   Default
+---------------+------------------------+-----------+----------+----------------------------------------------
+ student_id    | integer                |           | not null | nextval('students_student_id_seq'::regclass)
+ first_name    | character varying(50)  |           | not null |
+ last_name     | character varying(50)  |           | not null |
+ email         | character varying(100) |           | not null |
+ date_of_birth | date                   |           |          |
+ faculty       | character varying(100) |           |          |
+ street        | character varying(100) |           |          |
+ city          | character varying(50)  |           |          |
+ zip_code      | character varying(10)  |           |          |
+Indexes:
+    "students_pkey" PRIMARY KEY, btree (student_id)
+    "students_email_key" UNIQUE CONSTRAINT, btree (email)
+
+
+lab9=# -- Entity PROFESSOR -> table "professors"
+lab9=# CREATE TABLE professors (
+lab9(#     professor_id SERIAL PRIMARY KEY,
+lab9(#     first_name   VARCHAR(50)  NOT NULL,
+lab9(#     last_name    VARCHAR(50)  NOT NULL,
+lab9(#     department   VARCHAR(100),
+lab9(#     email        VARCHAR(100) UNIQUE
+lab9(# );
+CREATE TABLE
+lab9=# \d professors
+                                            Table "public.professors"
+    Column    |          Type          | Collation | Nullable |                     Default
+--------------+------------------------+-----------+----------+--------------------------------------------------
+ professor_id | integer                |           | not null | nextval('professors_professor_id_seq'::regclass)
+ first_name   | character varying(50)  |           | not null |
+ last_name    | character varying(50)  |           | not null |
+ department   | character varying(100) |           |          |
+ email        | character varying(100) |           |          |
+Indexes:
+    "professors_pkey" PRIMARY KEY, btree (professor_id)
+    "professors_email_key" UNIQUE CONSTRAINT, btree (email)
+
+
+lab9=# -- Entity COURSE -> table "courses"
+lab9=# -- Relationship "Professors TEACH Courses" is One-to-Many:
+lab9=# -- one professor teaches many courses, each course has one professor,
+lab9=# -- so the foreign key goes into the "many" side (courses).
+lab9=# CREATE TABLE courses (
+lab9(#     course_id    SERIAL PRIMARY KEY,
+lab9(#     course_name  VARCHAR(100) NOT NULL,
+lab9(#     credits      INTEGER CHECK (credits > 0),
+lab9(#     description  TEXT,
+lab9(#     professor_id INTEGER REFERENCES professors(professor_id)
+lab9(# );
+CREATE TABLE
+lab9=# \d courses
+                                          Table "public.courses"
+    Column    |          Type          | Collation | Nullable |                  Default
+--------------+------------------------+-----------+----------+--------------------------------------------
+ course_id    | integer                |           | not null | nextval('courses_course_id_seq'::regclass)
+ course_name  | character varying(100) |           | not null |
+ credits      | integer                |           |          |
+ description  | text                   |           |          |
+ professor_id | integer                |           |          |
+Indexes:
+    "courses_pkey" PRIMARY KEY, btree (course_id)
+Check constraints:
+    "courses_credits_check" CHECK (credits > 0)
+Foreign-key constraints:
+    "courses_professor_id_fkey" FOREIGN KEY (professor_id) REFERENCES professors(professor_id)
+
+
+lab9=# -- Relationship "Students ENROLL in Courses" is Many-to-Many:
+lab9=# -- it needs a junction table with two foreign keys.
+lab9=# CREATE TABLE enrollments (
+lab9(#     student_id INTEGER REFERENCES students(student_id),
+lab9(#     course_id  INTEGER REFERENCES courses(course_id),
+lab9(#     grade      CHAR(2),
+lab9(#     PRIMARY KEY (student_id, course_id)     -- a student enrolls in a course only once
+lab9(# );
+CREATE TABLE
+lab9=# \d enrollment
+Did not find any relation named "enrollment".
+lab9=# \d enrollments
+                 Table "public.enrollments"
+   Column   |     Type     | Collation | Nullable | Default
+------------+--------------+-----------+----------+---------
+ student_id | integer      |           | not null |
+ course_id  | integer      |           | not null |
+ grade      | character(2) |           |          |
+Indexes:
+    "enrollments_pkey" PRIMARY KEY, btree (student_id, course_id)
+Foreign-key constraints:
+    "enrollments_course_id_fkey" FOREIGN KEY (course_id) REFERENCES courses(course_id)
+    "enrollments_student_id_fkey" FOREIGN KEY (student_id) REFERENCES students(student_id)
+
+
+lab9=# -- Sample data
+lab9=# INSERT INTO students (first_name, last_name, email, date_of_birth, faculty, street, city, zip_code) VALUES
+lab9-#     ('Nigora', 'Karimova', 'nigora@alatoo.edu.kg', '2005-03-14', 'Computer Science', 'Chui Ave 12',   'Bishkek', '720001'),
+lab9-#     ('Timur',  'Asanov',   'timur@alatoo.edu.kg',  '2004-11-02', 'Mathematics',      'Manas Ave 45',  'Bishkek', '720040'),
+lab9-#     ('Aizada', 'Bekova',   'aizada@alatoo.edu.kg', '2005-07-21', 'Computer Science', 'Lenin St 8',    'Osh',     '723500');
+INSERT 0 3
+lab9=# SELECT * FROM students ORDER BY student_id;
+ student_id | first_name | last_name |        email         | date_of_birth |     faculty      |    street    |  city   | zip_code
+------------+------------+-----------+----------------------+---------------+------------------+--------------+---------+----------
+          1 | Nigora     | Karimova  | nigora@alatoo.edu.kg | 2005-03-14    | Computer Science | Chui Ave 12  | Bishkek | 720001
+          2 | Timur      | Asanov    | timur@alatoo.edu.kg  | 2004-11-02    | Mathematics      | Manas Ave 45 | Bishkek | 720040
+          3 | Aizada     | Bekova    | aizada@alatoo.edu.kg | 2005-07-21    | Computer Science | Lenin St 8   | Osh     | 723500
+(3 rows)
+
+
+lab9=# INSERT INTO professors (first_name, last_name, department, email) VALUES
+lab9-#     ('Azamat', 'Toktogulov', 'Computer Science', 'a.toktogulov@alatoo.edu.kg'),
+lab9-#     ('Elena',  'Ivanova',    'Mathematics',      'e.ivanova@alatoo.edu.kg');
+INSERT 0 2
+lab9=# SELECT * FROM professors;
+ professor_id | first_name | last_name  |    department    |           email
+--------------+------------+------------+------------------+----------------------------
+            1 | Azamat     | Toktogulov | Computer Science | a.toktogulov@alatoo.edu.kg
+            2 | Elena      | Ivanova    | Mathematics      | e.ivanova@alatoo.edu.kg
+(2 rows)
+
+
+lab9=# INSERT INTO courses (course_name, credits, description, professor_id) VALUES
+lab9-#     ('Databases',          5, 'Relational databases and SQL',   1),
+lab9-#     ('Programming in C',   4, 'Basics of programming',          1),
+lab9-#     ('Calculus I',         4, 'Limits, derivatives, integrals', 2);
+INSERT 0 3
+lab9=# SELECT * FROM courses;
+ course_id |   course_name    | credits |          description           | professor_id
+-----------+------------------+---------+--------------------------------+--------------
+         1 | Databases        |       5 | Relational databases and SQL   |            1
+         2 | Programming in C |       4 | Basics of programming          |            1
+         3 | Calculus I       |       4 | Limits, derivatives, integrals |            2
+(3 rows)
+
+
+lab9=# INSERT INTO enrollments (student_id, course_id, grade) VALUES
+lab9-#     (1, 1, 'A'), (1, 3, 'B+'),
+lab9-#     (2, 3, 'A'), (2, 1, 'B'),
+lab9-#     (3, 1, 'A-'), (3, 2, 'A');
+INSERT 0 6
+lab9=# SELECT * FROM enrollments;
+ student_id | course_id | grade
+------------+-----------+-------
+          1 |         1 | A
+          1 |         3 | B+
+          2 |         3 | A
+          2 |         1 | B
+          3 |         1 | A-
+          3 |         2 | A
+(6 rows)
+
+
+lab9=# -- Derived attribute: age is calculated, not stored
+lab9=# SELECT first_name, last_name, date_of_birth,
+lab9-#        EXTRACT(YEAR FROM AGE(date_of_birth)) AS age
+lab9-# FROM students;
+ first_name | last_name | date_of_birth | age
+------------+-----------+---------------+-----
+ Nigora     | Karimova  | 2005-03-14    |  21
+ Timur      | Asanov    | 2004-11-02    |  21
+ Aizada     | Bekova    | 2005-07-21    |  21
+(3 rows)
+
+
+lab9=# -- Composite attribute: the three parts can be combined back into a full address
+lab9=# SELECT first_name, street || ', ' || city || ', ' || zip_code AS full_address
+lab9-# FROM students;
+ first_name |         full_address
+------------+-------------------------------
+ Nigora     | Chui Ave 12, Bishkek, 720001
+ Timur      | Manas Ave 45, Bishkek, 720040
+ Aizada     | Lenin St 8, Osh, 723500
+(3 rows)
+
+
+lab9=# -- One-to-Many: which professor teaches which course
+lab9=# SELECT p.first_name || ' ' || p.last_name AS professor, c.course_name
+lab9-# FROM professors p
+lab9-# JOIN courses c ON p.professor_id = c.professor_id
+lab9-# ORDER BY professor;
+     professor     |   course_name
+-------------------+------------------
+ Azamat Toktogulov | Databases
+ Azamat Toktogulov | Programming in C
+ Elena Ivanova     | Calculus I
+(3 rows)
+
+
+lab9=# -- Many-to-Many: students and their courses
+lab9=# SELECT s.first_name, c.course_name, e.grade
+lab9-# FROM students s
+lab9-# JOIN enrollments e ON s.student_id = e.student_id
+lab9-# JOIN courses c     ON e.course_id  = c.course_id
+lab9-# ORDER BY s.first_name, c.course_name;
+ first_name |   course_name    | grade
+------------+------------------+-------
+ Aizada     | Databases        | A-
+ Aizada     | Programming in C | A
+ Nigora     | Calculus I       | B+
+ Nigora     | Databases        | A
+ Timur      | Calculus I       | A
+ Timur      | Databases        | B
+(6 rows)
+
+
+lab9=# DROP TABLE IF EXISTS enrollments, courses, professors, students, students_bad, student_phones CASCADE;
+ЗАМЕЧАНИЕ:  таблица "students_bad" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "student_phones" не существует, пропускается
+DROP TABLE
+lab9=#
+lab9=# -- From lab. BAD: multiple phone numbers in one column (not atomic)
+lab9=# CREATE TABLE students_bad (
+lab9(#     student_id    INT PRIMARY KEY,
+lab9(#     name          VARCHAR(100),
+lab9(#     phone_numbers TEXT              -- "123-456-7890, 098-765-4321"
+lab9(# );
+CREATE TABLE
+lab9=# INSERT INTO students_bad VALUES
+lab9-#     (1, 'Nigora Karimova', '0555-111-222, 0700-333-444'),
+lab9-#     (2, 'Timur Asanov',    '0777-555-666'),
+lab9-#     (3, 'Aizada Bekova',   '0555-777-888, 0312-999-000, 0700-121-212');
+INSERT 0 3
+lab9=# SELECT * FROM students_bad ORDER BY student_id;
+ student_id |      name       |              phone_numbers
+------------+-----------------+------------------------------------------
+          1 | Nigora Karimova | 0555-111-222, 0700-333-444
+          2 | Timur Asanov    | 0777-555-666
+          3 | Aizada Bekova   | 0555-777-888, 0312-999-000, 0700-121-212
+(3 rows)
+
+
+lab9=#
+lab9=# -- Problem 1: we cannot simply count phones or search for one number
+lab9=# SELECT name FROM students_bad WHERE phone_numbers = '0700-333-444';     -- finds nothing!
+ name
+------
+(0 rows)
+
+
+lab9=# SELECT name FROM students_bad WHERE phone_numbers LIKE '%0700-333-444%'; -- needs a slow LIKE search
+      name
+-----------------
+ Nigora Karimova
+(1 row)
+
+
+lab9=#
+lab9=# -- Problem 2: to delete one number we must rewrite the whole string
+lab9=# UPDATE students_bad SET phone_numbers = '0555-111-222' WHERE student_id = 1;
+UPDATE 1
+lab9=# SELECT * FROM students_bad ORDER BY student_id;
+ student_id |      name       |              phone_numbers
+------------+-----------------+------------------------------------------
+          1 | Nigora Karimova | 0555-111-222
+          2 | Timur Asanov    | 0777-555-666
+          3 | Aizada Bekova   | 0555-777-888, 0312-999-000, 0700-121-212
+(3 rows)
+
+
+lab9=#
+lab9=# -- From lab. GOOD: atomic values, phones in a separate table
+lab9=# CREATE TABLE students (
+lab9(#     student_id INT PRIMARY KEY,
+lab9(#     name       VARCHAR(100)
+lab9(# );
+CREATE TABLE
+lab9=# CREATE TABLE student_phones (
+lab9(#     student_id   INT,
+lab9(#     phone_number VARCHAR(15),
+lab9(#     phone_type   VARCHAR(20),        -- 'mobile', 'home', etc.
+lab9(#     PRIMARY KEY (student_id, phone_number),
+lab9(#     FOREIGN KEY (student_id) REFERENCES students(student_id)
+lab9(# );
+CREATE TABLE
+lab9=# \d student_phones
+                     Table "public.student_phones"
+    Column    |         Type          | Collation | Nullable | Default
+--------------+-----------------------+-----------+----------+---------
+ student_id   | integer               |           | not null |
+ phone_number | character varying(15) |           | not null |
+ phone_type   | character varying(20) |           |          |
+Indexes:
+    "student_phones_pkey" PRIMARY KEY, btree (student_id, phone_number)
+Foreign-key constraints:
+    "student_phones_student_id_fkey" FOREIGN KEY (student_id) REFERENCES students(student_id)
+
+
+lab9=#
+lab9=# -- My addition: move the data from the BAD table to the GOOD tables automatically.
+lab9=# -- string_to_array splits the text by commas, unnest turns the array into rows.
+lab9=# INSERT INTO students (student_id, name)
+lab9-# SELECT student_id, name FROM students_bad;
+INSERT 0 3
+lab9=#
+lab9=# -- restore the original phones of student 1 for the demonstration
+lab9=# UPDATE students_bad SET phone_numbers = '0555-111-222, 0700-333-444' WHERE student_id = 1;
+UPDATE 1
+lab9=#
+lab9=# INSERT INTO student_phones (student_id, phone_number, phone_type)
+lab9-# SELECT student_id, TRIM(unnest(string_to_array(phone_numbers, ','))), 'mobile'
+lab9-# FROM students_bad;
+INSERT 0 6
+lab9=#
+lab9=# SELECT * FROM students ORDER BY student_id;
+ student_id |      name
+------------+-----------------
+          1 | Nigora Karimova
+          2 | Timur Asanov
+          3 | Aizada Bekova
+(3 rows)
+
+
+lab9=# SELECT * FROM student_phones ORDER BY student_id;
+ student_id | phone_number | phone_type
+------------+--------------+------------
+          1 | 0555-111-222 | mobile
+          1 | 0700-333-444 | mobile
+          2 | 0777-555-666 | mobile
+          3 | 0555-777-888 | mobile
+          3 | 0312-999-000 | mobile
+          3 | 0700-121-212 | mobile
+(6 rows)
+
+
+lab9=#
+lab9=# -- Now each value is atomic and the operations are simple
+lab9=# SELECT s.name FROM students s
+lab9-# JOIN student_phones p ON s.student_id = p.student_id
+lab9-# WHERE p.phone_number = '0700-333-444';                          -- exact search works
+      name
+-----------------
+ Nigora Karimova
+(1 row)
+
+
+lab9=#
+lab9=# SELECT s.name, COUNT(p.phone_number) AS phones_count
+lab9-# FROM students s
+lab9-# LEFT JOIN student_phones p ON s.student_id = p.student_id
+lab9-# GROUP BY s.name
+lab9-# ORDER BY s.name;                                                -- counting works
+      name       | phones_count
+-----------------+--------------
+ Aizada Bekova   |            3
+ Nigora Karimova |            2
+ Timur Asanov    |            1
+(3 rows)
+
+
+lab9=#
+lab9=# UPDATE student_phones SET phone_type = 'home' WHERE phone_number = '0312-999-000';
+UPDATE 1
+lab9=# SELECT * FROM student_phones ORDER BY student_id;
+ student_id | phone_number | phone_type
+------------+--------------+------------
+          1 | 0555-111-222 | mobile
+          1 | 0700-333-444 | mobile
+          2 | 0777-555-666 | mobile
+          3 | 0555-777-888 | mobile
+          3 | 0700-121-212 | mobile
+          3 | 0312-999-000 | home
+(6 rows)
+
+
+lab9=#
+lab9=# DELETE FROM student_phones WHERE phone_number = '0700-333-444'; -- delete one number only
+DELETE 1
+lab9=# SELECT * FROM student_phones ORDER BY student_id;
+ student_id | phone_number | phone_type
+------------+--------------+------------
+          1 | 0555-111-222 | mobile
+          2 | 0777-555-666 | mobile
+          3 | 0555-777-888 | mobile
+          3 | 0700-121-212 | mobile
+          3 | 0312-999-000 | home
+(5 rows)
+
+
+lab9=#
+lab9=# -- EXPECTED ERROR: the same phone twice for one student (rows must be unique)
+lab9=# INSERT INTO student_phones VALUES (2, '0777-555-666', 'mobile');
+ОШИБКА:  повторяющееся значение ключа нарушает ограничение уникальности "student_phones_pkey"
+DETAIL:  Ключ "(student_id, phone_number)=(2, 0777-555-666)" уже существует.
+lab9=# SELECT * FROM student_phones ORDER BY student_id;
+ student_id | phone_number | phone_type
+------------+--------------+------------
+          1 | 0555-111-222 | mobile
+          2 | 0777-555-666 | mobile
+          3 | 0555-777-888 | mobile
+          3 | 0700-121-212 | mobile
+          3 | 0312-999-000 | home
+(5 rows)
+
+
+lab9=# DROP TABLE IF EXISTS enrollments_bad, enrollments, courses CASCADE;
+ЗАМЕЧАНИЕ:  таблица "enrollments_bad" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "enrollments" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "courses" не существует, пропускается
+DROP TABLE
+lab9=#
+lab9=# -- From lab. BAD: course_name depends only on course_id,
+lab9=# -- not on the whole key (student_id, course_id)
+lab9=# CREATE TABLE enrollments_bad (
+lab9(#     student_id  INT,
+lab9(#     course_id   INT,
+lab9(#     course_name VARCHAR(100),       -- partial dependency!
+lab9(#     grade       CHAR(2),
+lab9(#     PRIMARY KEY (student_id, course_id)
+lab9(# );
+CREATE TABLE
+lab9=# INSERT INTO enrollments_bad VALUES
+lab9-#     (1, 101, 'Databases',  'A'),
+lab9-#     (2, 101, 'Databases',  'B'),
+lab9-#     (3, 101, 'Databases',  'A-'),
+lab9-#     (1, 102, 'Calculus I', 'B+'),
+lab9-#     (2, 102, 'Calculus I', 'A');
+INSERT 0 5
+lab9=# SELECT * FROM enrollments_bad ORDER BY course_id, student_id;
+ student_id | course_id | course_name | grade
+------------+-----------+-------------+-------
+          1 |       101 | Databases   | A
+          2 |       101 | Databases   | B
+          3 |       101 | Databases   | A-
+          1 |       102 | Calculus I  | B+
+          2 |       102 | Calculus I  | A
+(5 rows)
+
+
+lab9=# -- Redundancy: 'Databases' is stored 3 times
+lab9=#
+lab9=# -- Update anomaly: rename the course in only one row
+lab9=# UPDATE enrollments_bad SET course_name = 'Database Systems'
+lab9-# WHERE student_id = 1 AND course_id = 101;
+UPDATE 1
+lab9=# SELECT * FROM enrollments_bad ORDER BY course_id, student_id;
+ student_id | course_id |   course_name    | grade
+------------+-----------+------------------+-------
+          1 |       101 | Database Systems | A
+          2 |       101 | Databases        | B
+          3 |       101 | Databases        | A-
+          1 |       102 | Calculus I       | B+
+          2 |       102 | Calculus I       | A
+(5 rows)
+
+
+lab9=# -- Now course 101 has TWO different names -> inconsistent data
+lab9=# SELECT course_id, COUNT(DISTINCT course_name) AS different_names
+lab9-# FROM enrollments_bad GROUP BY course_id;
+ course_id | different_names
+-----------+-----------------
+       101 |               2
+       102 |               1
+(2 rows)
+
+
+lab9=#
+lab9=# -- From lab. GOOD: separate tables
+lab9=# CREATE TABLE courses (
+lab9(#     course_id   INT PRIMARY KEY,
+lab9(#     course_name VARCHAR(100),
+lab9(#     credits     INT
+lab9(# );
+CREATE TABLE
+lab9=# CREATE TABLE enrollments (
+lab9(#     student_id INT,
+lab9(#     course_id  INT,
+lab9(#     grade      CHAR(2),
+lab9(#     PRIMARY KEY (student_id, course_id),
+lab9(#     FOREIGN KEY (student_id) REFERENCES students(student_id),
+lab9(#     FOREIGN KEY (course_id)  REFERENCES courses(course_id)
+lab9(# );
+CREATE TABLE
+lab9=# \d enrollments
+                 Table "public.enrollments"
+   Column   |     Type     | Collation | Nullable | Default
+------------+--------------+-----------+----------+---------
+ student_id | integer      |           | not null |
+ course_id  | integer      |           | not null |
+ grade      | character(2) |           |          |
+Indexes:
+    "enrollments_pkey" PRIMARY KEY, btree (student_id, course_id)
+Foreign-key constraints:
+    "enrollments_course_id_fkey" FOREIGN KEY (course_id) REFERENCES courses(course_id)
+    "enrollments_student_id_fkey" FOREIGN KEY (student_id) REFERENCES students(student_id)
+
+
+lab9=#
+lab9=# -- My addition: move the data (each course is stored only once)
+lab9=# INSERT INTO courses (course_id, course_name, credits) VALUES
+lab9-#     (101, 'Databases', 5),
+lab9-#     (102, 'Calculus I', 4);
+INSERT 0 2
+lab9=# INSERT INTO enrollments (student_id, course_id, grade)
+lab9-# SELECT student_id, course_id, grade FROM enrollments_bad;
+INSERT 0 5
+lab9=# SELECT * FROM courses;
+ course_id | course_name | credits
+-----------+-------------+---------
+       101 | Databases   |       5
+       102 | Calculus I  |       4
+(2 rows)
+
+
+lab9=# SELECT * FROM enrollments ORDER BY course_id, student_id;
+ student_id | course_id | grade
+------------+-----------+-------
+          1 |       101 | A
+          2 |       101 | B
+          3 |       101 | A-
+          1 |       102 | B+
+          2 |       102 | A
+(5 rows)
+
+
+lab9=#
+lab9=# -- Rename the course in ONE place, every enrollment sees the new name
+lab9=# UPDATE courses SET course_name = 'Database Systems' WHERE course_id = 101;
+UPDATE 1
+lab9=# SELECT * FROM courses;
+ course_id |   course_name    | credits
+-----------+------------------+---------
+       102 | Calculus I       |       4
+       101 | Database Systems |       5
+(2 rows)
+
+
+lab9=#
+lab9=# SELECT s.name, c.course_name, e.grade
+lab9-# FROM enrollments e
+lab9-# JOIN students s ON e.student_id = s.student_id
+lab9-# JOIN courses  c ON e.course_id  = c.course_id
+lab9-# ORDER BY c.course_name, s.name;
+      name       |   course_name    | grade
+-----------------+------------------+-------
+ Nigora Karimova | Calculus I       | B+
+ Timur Asanov    | Calculus I       | A
+ Aizada Bekova   | Database Systems | A-
+ Nigora Karimova | Database Systems | A
+ Timur Asanov    | Database Systems | B
+(5 rows)
+
+
+lab9=#
+lab9=# -- EXPECTED ERROR: enrollment in a course that does not exist
+lab9=# INSERT INTO enrollments VALUES (1, 999, 'A');
+ОШИБКА:  INSERT или UPDATE в таблице "enrollments" нарушает ограничение внешнего ключа "enrollments_course_id_fkey"
+DETAIL:  Ключ (course_id)=(999) отсутствует в таблице "courses".
+lab9=# SELECT * FROM enrollments ORDER BY course_id, student_id;
+ student_id | course_id | grade
+------------+-----------+-------
+          1 |       101 | A
+          2 |       101 | B
+          3 |       101 | A-
+          1 |       102 | B+
+          2 |       102 | A
+(5 rows)
+
+
+lab9=# DROP TABLE IF EXISTS student_phones, enrollments, enrollments_bad, courses,
+lab9-#                      students, students_bad, departments CASCADE;
+ЗАМЕЧАНИЕ:  таблица "departments" не существует, пропускается
+DROP TABLE
+lab9=#
+lab9=# -- From lab. BAD: student_id -> department_id -> department_name
+lab9=# CREATE TABLE students_bad (
+lab9(#     student_id      INT PRIMARY KEY,
+lab9(#     name            VARCHAR(100),
+lab9(#     department_id   INT,
+lab9(#     department_name VARCHAR(100)        -- transitive dependency!
+lab9(# );
+CREATE TABLE
+lab9=# INSERT INTO students_bad VALUES
+lab9-#     (1, 'Nigora Karimova', 10, 'Computer Science'),
+lab9-#     (2, 'Timur Asanov',    20, 'Mathematics'),
+lab9-#     (3, 'Aizada Bekova',   10, 'Computer Science'),
+lab9-#     (4, 'Dana Kim',        10, 'Computer Science');
+INSERT 0 4
+lab9=# SELECT * FROM students_bad ORDER BY student_id;
+ student_id |      name       | department_id | department_name
+------------+-----------------+---------------+------------------
+          1 | Nigora Karimova |            10 | Computer Science
+          2 | Timur Asanov    |            20 | Mathematics
+          3 | Aizada Bekova   |            10 | Computer Science
+          4 | Dana Kim        |            10 | Computer Science
+(4 rows)
+
+
+lab9=#
+lab9=# -- Update anomaly: rename department 10 for one student only
+lab9=# UPDATE students_bad SET department_name = 'Software Engineering' WHERE student_id = 1;
+UPDATE 1
+lab9=# SELECT * FROM students_bad ORDER BY student_id;
+ student_id |      name       | department_id |   department_name
+------------+-----------------+---------------+----------------------
+          1 | Nigora Karimova |            10 | Software Engineering
+          2 | Timur Asanov    |            20 | Mathematics
+          3 | Aizada Bekova   |            10 | Computer Science
+          4 | Dana Kim        |            10 | Computer Science
+(4 rows)
+
+
+lab9=# -- Department 10 now has two names
+lab9=#
+lab9=# -- Delete anomaly: Timur is the only Mathematics student.
+lab9=# -- If he leaves, we lose the information that department 20 exists.
+lab9=# DELETE FROM students_bad WHERE student_id = 2;
+DELETE 1
+lab9=# SELECT * FROM students_bad ORDER BY student_id;
+ student_id |      name       | department_id |   department_name
+------------+-----------------+---------------+----------------------
+          1 | Nigora Karimova |            10 | Software Engineering
+          3 | Aizada Bekova   |            10 | Computer Science
+          4 | Dana Kim        |            10 | Computer Science
+(3 rows)
+
+
+lab9=# SELECT DISTINCT department_id, department_name FROM students_bad;   -- department 20 is gone
+ department_id |   department_name
+---------------+----------------------
+            10 | Software Engineering
+            10 | Computer Science
+(2 rows)
+
+
+lab9=#
+lab9=# -- From lab. GOOD: department information in its own table
+lab9=# CREATE TABLE departments (
+lab9(#     department_id   INT PRIMARY KEY,
+lab9(#     department_name VARCHAR(100),
+lab9(#     department_head VARCHAR(100)
+lab9(# );
+CREATE TABLE
+lab9=# CREATE TABLE students (
+lab9(#     student_id    INT PRIMARY KEY,
+lab9(#     name          VARCHAR(100),
+lab9(#     department_id INT,
+lab9(#     FOREIGN KEY (department_id) REFERENCES departments(department_id)
+lab9(# );
+CREATE TABLE
+lab9=# \d students
+                         Table "public.students"
+    Column     |          Type          | Collation | Nullable | Default
+---------------+------------------------+-----------+----------+---------
+ student_id    | integer                |           | not null |
+ name          | character varying(100) |           |          |
+ department_id | integer                |           |          |
+Indexes:
+    "students_pkey" PRIMARY KEY, btree (student_id)
+Foreign-key constraints:
+    "students_department_id_fkey" FOREIGN KEY (department_id) REFERENCES departments(department_id)
+
+
+lab9=#
+lab9=# INSERT INTO departments VALUES
+lab9-#     (10, 'Computer Science', 'Dr. Toktogulov'),
+lab9-#     (20, 'Mathematics',      'Dr. Ivanova');
+INSERT 0 2
+lab9=# INSERT INTO students VALUES
+lab9-#     (1, 'Nigora Karimova', 10),
+lab9-#     (2, 'Timur Asanov',    20),
+lab9-#     (3, 'Aizada Bekova',   10),
+lab9-#     (4, 'Dana Kim',        10);
+INSERT 0 4
+lab9=# SELECT * FROM departments;
+ department_id | department_name  | department_head
+---------------+------------------+-----------------
+            10 | Computer Science | Dr. Toktogulov
+            20 | Mathematics      | Dr. Ivanova
+(2 rows)
+
+
+lab9=# SELECT * FROM students ORDER BY student_id;
+ student_id |      name       | department_id
+------------+-----------------+---------------
+          1 | Nigora Karimova |            10
+          2 | Timur Asanov    |            20
+          3 | Aizada Bekova   |            10
+          4 | Dana Kim        |            10
+(4 rows)
+
+
+lab9=#
+lab9=# -- Rename the department in ONE place
+lab9=# UPDATE departments SET department_name = 'Software Engineering' WHERE department_id = 10;
+UPDATE 1
+lab9=# SELECT * FROM departments;
+ department_id |   department_name    | department_head
+---------------+----------------------+-----------------
+            20 | Mathematics          | Dr. Ivanova
+            10 | Software Engineering | Dr. Toktogulov
+(2 rows)
+
+
+lab9=#
+lab9=# SELECT s.name, d.department_name, d.department_head
+lab9-# FROM students s
+lab9-# JOIN departments d ON s.department_id = d.department_id
+lab9-# ORDER BY s.student_id;
+      name       |   department_name    | department_head
+-----------------+----------------------+-----------------
+ Nigora Karimova | Software Engineering | Dr. Toktogulov
+ Timur Asanov    | Mathematics          | Dr. Ivanova
+ Aizada Bekova   | Software Engineering | Dr. Toktogulov
+ Dana Kim        | Software Engineering | Dr. Toktogulov
+(4 rows)
+
+
+lab9=#
+lab9=# -- Delete Timur: department 20 still exists
+lab9=# DELETE FROM students WHERE student_id = 2;
+DELETE 1
+lab9=# SELECT * FROM students ORDER BY student_id;
+ student_id |      name       | department_id
+------------+-----------------+---------------
+          1 | Nigora Karimova |            10
+          3 | Aizada Bekova   |            10
+          4 | Dana Kim        |            10
+(3 rows)
+
+
+lab9=# SELECT * FROM departments;
+ department_id |   department_name    | department_head
+---------------+----------------------+-----------------
+            20 | Mathematics          | Dr. Ivanova
+            10 | Software Engineering | Dr. Toktogulov
+(2 rows)
+
+
+lab9=#
+lab9=# -- My addition: a new department can exist before it has any students
+lab9=# INSERT INTO departments VALUES (30, 'Physics', 'Dr. Kim');
+INSERT 0 1
+lab9=# SELECT d.department_name, COUNT(s.student_id) AS students_count
+lab9-# FROM departments d
+lab9-# LEFT JOIN students s ON d.department_id = s.department_id
+lab9-# GROUP BY d.department_name
+lab9-# ORDER BY d.department_name;
+   department_name    | students_count
+----------------------+----------------
+ Mathematics          |              0
+ Physics              |              0
+ Software Engineering |              3
+(3 rows)
+
+
+lab9=# DROP TABLE IF EXISTS loans, members, book_authors, books, authors CASCADE;
+ЗАМЕЧАНИЕ:  таблица "loans" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "members" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "book_authors" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "books" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "authors" не существует, пропускается
+DROP TABLE
+lab9=#
+lab9=# -- Logical design (from lab) + my CHECK constraints
+lab9=# CREATE TABLE authors (
+lab9(#     author_id  SERIAL PRIMARY KEY,
+lab9(#     first_name VARCHAR(50) NOT NULL,
+lab9(#     last_name  VARCHAR(50) NOT NULL,
+lab9(#     birth_date DATE
+lab9(# );
+CREATE TABLE
+lab9=#
+lab9=# CREATE TABLE books (
+lab9(#     book_id          SERIAL PRIMARY KEY,
+lab9(#     title            VARCHAR(200) NOT NULL,
+lab9(#     isbn             VARCHAR(13) UNIQUE,
+lab9(#     publication_year INTEGER,
+lab9(#     available_copies INTEGER DEFAULT 1 CHECK (available_copies >= 0)   -- my CHECK
+lab9(# );
+CREATE TABLE
+lab9=#
+lab9=# CREATE TABLE book_authors (
+lab9(#     book_id   INTEGER,
+lab9(#     author_id INTEGER,
+lab9(#     PRIMARY KEY (book_id, author_id),
+lab9(#     FOREIGN KEY (book_id)   REFERENCES books(book_id),
+lab9(#     FOREIGN KEY (author_id) REFERENCES authors(author_id)
+lab9(# );
+CREATE TABLE
+lab9=#
+lab9=# CREATE TABLE members (
+lab9(#     member_id       SERIAL PRIMARY KEY,
+lab9(#     first_name      VARCHAR(50)  NOT NULL,
+lab9(#     last_name       VARCHAR(50)  NOT NULL,
+lab9(#     email           VARCHAR(100) UNIQUE NOT NULL,
+lab9(#     phone           VARCHAR(15),
+lab9(#     membership_date DATE DEFAULT CURRENT_DATE
+lab9(# );
+CREATE TABLE
+lab9=#
+lab9=# CREATE TABLE loans (
+lab9(#     loan_id     SERIAL PRIMARY KEY,
+lab9(#     member_id   INTEGER NOT NULL,
+lab9(#     book_id     INTEGER NOT NULL,
+lab9(#     loan_date   DATE DEFAULT CURRENT_DATE,
+lab9(#     due_date    DATE NOT NULL,
+lab9(#     return_date DATE,
+lab9(#     late_fee    DECIMAL(10,2) DEFAULT 0.00,
+lab9(#     FOREIGN KEY (member_id) REFERENCES members(member_id),
+lab9(#     FOREIGN KEY (book_id)   REFERENCES books(book_id),
+lab9(#     CHECK (due_date >= loan_date)                                      -- my CHECK
+lab9(# );
+CREATE TABLE
+lab9=# \d loans
+                                    Table "public.loans"
+   Column    |     Type      | Collation | Nullable |                Default
+-------------+---------------+-----------+----------+----------------------------------------
+ loan_id     | integer       |           | not null | nextval('loans_loan_id_seq'::regclass)
+ member_id   | integer       |           | not null |
+ book_id     | integer       |           | not null |
+ loan_date   | date          |           |          | CURRENT_DATE
+ due_date    | date          |           | not null |
+ return_date | date          |           |          |
+ late_fee    | numeric(10,2) |           |          | 0.00
+Indexes:
+    "loans_pkey" PRIMARY KEY, btree (loan_id)
+Check constraints:
+    "loans_check" CHECK (due_date >= loan_date)
+Foreign-key constraints:
+    "loans_book_id_fkey" FOREIGN KEY (book_id) REFERENCES books(book_id)
+    "loans_member_id_fkey" FOREIGN KEY (member_id) REFERENCES members(member_id)
+
+
+lab9=#
+lab9=# -- Physical design (my addition): indexes on foreign keys for faster JOINs
+lab9=# CREATE INDEX idx_loans_member ON loans(member_id);
+CREATE INDEX
+lab9=# CREATE INDEX idx_loans_book   ON loans(book_id);
+CREATE INDEX
+lab9=# \d loans
+                                    Table "public.loans"
+   Column    |     Type      | Collation | Nullable |                Default
+-------------+---------------+-----------+----------+----------------------------------------
+ loan_id     | integer       |           | not null | nextval('loans_loan_id_seq'::regclass)
+ member_id   | integer       |           | not null |
+ book_id     | integer       |           | not null |
+ loan_date   | date          |           |          | CURRENT_DATE
+ due_date    | date          |           | not null |
+ return_date | date          |           |          |
+ late_fee    | numeric(10,2) |           |          | 0.00
+Indexes:
+    "loans_pkey" PRIMARY KEY, btree (loan_id)
+    "idx_loans_book" btree (book_id)
+    "idx_loans_member" btree (member_id)
+Check constraints:
+    "loans_check" CHECK (due_date >= loan_date)
+Foreign-key constraints:
+    "loans_book_id_fkey" FOREIGN KEY (book_id) REFERENCES books(book_id)
+    "loans_member_id_fkey" FOREIGN KEY (member_id) REFERENCES members(member_id)
+
+
+lab9=#
+lab9=# -- Sample data
+lab9=# INSERT INTO authors (first_name, last_name, birth_date) VALUES
+lab9-#     ('Abraham', 'Silberschatz', '1952-05-01'),
+lab9-#     ('Henry',   'Korth',        NULL),
+lab9-#     ('Chingiz', 'Aitmatov',     '1928-12-12'),
+lab9-#     ('Ramez',   'Elmasri',      NULL);
+INSERT 0 4
+lab9=# SELECT * FROM authors;
+ author_id | first_name |  last_name   | birth_date
+-----------+------------+--------------+------------
+         1 | Abraham    | Silberschatz | 1952-05-01
+         2 | Henry      | Korth        |
+         3 | Chingiz    | Aitmatov     | 1928-12-12
+         4 | Ramez      | Elmasri      |
+(4 rows)
+
+
+lab9=#
+lab9=# INSERT INTO books (title, isbn, publication_year, available_copies) VALUES
+lab9-#     ('Database System Concepts',         '9780073523323', 2010, 3),
+lab9-#     ('Jamilia',                          '9780863568985', 1958, 2),
+lab9-#     ('Fundamentals of Database Systems', '9780133970777', 2015, 1);
+INSERT 0 3
+lab9=# SELECT * FROM books;
+ book_id |              title               |     isbn      | publication_year | available_copies
+---------+----------------------------------+---------------+------------------+------------------
+       1 | Database System Concepts         | 9780073523323 |             2010 |                3
+       2 | Jamilia                          | 9780863568985 |             1958 |                2
+       3 | Fundamentals of Database Systems | 9780133970777 |             2015 |                1
+(3 rows)
+
+
+lab9=#
+lab9=# -- Many-to-Many: book 1 has two authors
+lab9=# INSERT INTO book_authors VALUES (1, 1), (1, 2), (2, 3), (3, 4);
+INSERT 0 4
+lab9=# SELECT * FROM book_authors;
+ book_id | author_id
+---------+-----------
+       1 |         1
+       1 |         2
+       2 |         3
+       3 |         4
+(4 rows)
+
+
+lab9=#
+lab9=# INSERT INTO members (first_name, last_name, email, phone) VALUES
+lab9-#     ('Nigora', 'Karimova', 'nigora@alatoo.edu.kg', '0555111222'),
+lab9-#     ('Timur',  'Asanov',   'timur@alatoo.edu.kg',  '0777555666');
+INSERT 0 2
+lab9=# SELECT * FROM members;
+ member_id | first_name | last_name |        email         |   phone    | membership_date
+-----------+------------+-----------+----------------------+------------+-----------------
+         1 | Nigora     | Karimova  | nigora@alatoo.edu.kg | 0555111222 | 2026-10-13
+         2 | Timur      | Asanov    | timur@alatoo.edu.kg  | 0777555666 | 2026-10-13
+(2 rows)
+
+
+lab9=#
+lab9=# -- One-to-Many: a member can have many loans
+lab9=# INSERT INTO loans (member_id, book_id, loan_date, due_date, return_date) VALUES
+lab9-#     (1, 1, '2026-09-01', '2026-09-15', '2026-09-14'),   -- returned on time
+lab9-#     (1, 2, '2026-09-20', '2026-10-04', NULL),           -- not returned, overdue
+lab9-#     (2, 3, '2026-09-25', '2026-10-09', '2026-10-12'),   -- returned 3 days late
+lab9-#     (2, 1, '2026-10-05', '2026-10-19', NULL);           -- not returned yet
+INSERT 0 4
+lab9=# SELECT * FROM loans ORDER BY loan_id;
+ loan_id | member_id | book_id | loan_date  |  due_date  | return_date | late_fee
+---------+-----------+---------+------------+------------+-------------+----------
+       1 |         1 |       1 | 2026-09-01 | 2026-09-15 | 2026-09-14  |     0.00
+       2 |         1 |       2 | 2026-09-20 | 2026-10-04 |             |     0.00
+       3 |         2 |       3 | 2026-09-25 | 2026-10-09 | 2026-10-12  |     0.00
+       4 |         2 |       1 | 2026-10-05 | 2026-10-19 |             |     0.00
+(4 rows)
+
+
+lab9=#
+lab9=# -- Borrowed books are no longer available
+lab9=# UPDATE books SET available_copies = available_copies - 1 WHERE book_id IN (1, 2);
+UPDATE 2
+lab9=# SELECT * FROM books;
+ book_id |              title               |     isbn      | publication_year | available_copies
+---------+----------------------------------+---------------+------------------+------------------
+       3 | Fundamentals of Database Systems | 9780133970777 |             2015 |                1
+       1 | Database System Concepts         | 9780073523323 |             2010 |                2
+       2 | Jamilia                          | 9780863568985 |             1958 |                1
+(3 rows)
+
+
+lab9=#
+lab9=# -- Queries that the design must support
+lab9=# -- Books with all their authors
+lab9=# SELECT b.title, string_agg(a.first_name || ' ' || a.last_name, ', ') AS authors
+lab9-# FROM books b
+lab9-# JOIN book_authors ba ON b.book_id = ba.book_id
+lab9-# JOIN authors a       ON ba.author_id = a.author_id
+lab9-# GROUP BY b.title
+lab9-# ORDER BY b.title;
+              title               |              authors
+----------------------------------+-----------------------------------
+ Database System Concepts         | Abraham Silberschatz, Henry Korth
+ Fundamentals of Database Systems | Ramez Elmasri
+ Jamilia                          | Chingiz Aitmatov
+(3 rows)
+
+
+lab9=#
+lab9=# -- Borrowing history of every member
+lab9=# SELECT m.first_name, b.title, l.loan_date, l.due_date, l.return_date
+lab9-# FROM loans l
+lab9-# JOIN members m ON l.member_id = m.member_id
+lab9-# JOIN books b   ON l.book_id   = b.book_id
+lab9-# ORDER BY m.first_name, l.loan_date;
+ first_name |              title               | loan_date  |  due_date  | return_date
+------------+----------------------------------+------------+------------+-------------
+ Nigora     | Database System Concepts         | 2026-09-01 | 2026-09-15 | 2026-09-14
+ Nigora     | Jamilia                          | 2026-09-20 | 2026-10-04 |
+ Timur      | Fundamentals of Database Systems | 2026-09-25 | 2026-10-09 | 2026-10-12
+ Timur      | Database System Concepts         | 2026-10-05 | 2026-10-19 |
+(4 rows)
+
+
+lab9=#
+lab9=# -- Late fees: 10 som per day late (returned late, or still not returned after due date)
+lab9=# UPDATE loans
+lab9-# SET late_fee = 10 * (COALESCE(return_date, DATE '2026-10-13') - due_date)
+lab9-# WHERE COALESCE(return_date, DATE '2026-10-13') > due_date;
+UPDATE 2
+lab9=# SELECT loan_id, member_id, book_id, due_date, return_date, late_fee
+lab9-# FROM loans ORDER BY loan_id;
+ loan_id | member_id | book_id |  due_date  | return_date | late_fee
+---------+-----------+---------+------------+-------------+----------
+       1 |         1 |       1 | 2026-09-15 | 2026-09-14  |     0.00
+       2 |         1 |       2 | 2026-10-04 |             |    90.00
+       3 |         2 |       3 | 2026-10-09 | 2026-10-12  |    30.00
+       4 |         2 |       1 | 2026-10-19 |             |     0.00
+(4 rows)
+
+
+lab9=#
+lab9=# -- Total fee per member
+lab9=# SELECT m.first_name, m.last_name, SUM(l.late_fee) AS total_fee
+lab9-# FROM members m
+lab9-# JOIN loans l ON m.member_id = l.member_id
+lab9-# GROUP BY m.first_name, m.last_name;
+ first_name | last_name | total_fee
+------------+-----------+-----------
+ Timur      | Asanov    |     30.00
+ Nigora     | Karimova  |     90.00
+(2 rows)
+
+
+lab9=#
+lab9=# -- Integrity checks (my addition)
+lab9=# -- EXPECTED ERROR: member 99 does not exist
+lab9=# INSERT INTO loans (member_id, book_id, due_date) VALUES (99, 1, '2026-11-01');
+ОШИБКА:  INSERT или UPDATE в таблице "loans" нарушает ограничение внешнего ключа "loans_member_id_fkey"
+DETAIL:  Ключ (member_id)=(99) отсутствует в таблице "members".
+lab9=# -- EXPECTED ERROR: due date before loan date (CHECK)
+lab9=# INSERT INTO loans (member_id, book_id, loan_date, due_date) VALUES (1, 1, '2026-10-13', '2026-10-01');
+ОШИБКА:  новая строка в отношении "loans" нарушает ограничение-проверку "loans_check"
+DETAIL:  Ошибочная строка содержит (6, 1, 1, 2026-10-13, 2026-10-01, null, 0.00).
+lab9=# -- EXPECTED ERROR: available copies cannot be negative (CHECK)
+lab9=# UPDATE books SET available_copies = available_copies - 5 WHERE book_id = 3;
+ОШИБКА:  новая строка в отношении "books" нарушает ограничение-проверку "books_available_copies_check"
+DETAIL:  Ошибочная строка содержит (3, Fundamentals of Database Systems, 9780133970777, 2015, -4).
+lab9=# -- EXPECTED ERROR: the same author added to the same book twice
+lab9=# INSERT INTO book_authors VALUES (1, 1);
+ОШИБКА:  повторяющееся значение ключа нарушает ограничение уникальности "book_authors_pkey"
+DETAIL:  Ключ "(book_id, author_id)=(1, 1)" уже существует.
+lab9=# SELECT * FROM loans ORDER BY loan_id;
+ loan_id | member_id | book_id | loan_date  |  due_date  | return_date | late_fee
+---------+-----------+---------+------------+------------+-------------+----------
+       1 |         1 |       1 | 2026-09-01 | 2026-09-15 | 2026-09-14  |     0.00
+       2 |         1 |       2 | 2026-09-20 | 2026-10-04 |             |    90.00
+       3 |         2 |       3 | 2026-09-25 | 2026-10-09 | 2026-10-12  |    30.00
+       4 |         2 |       1 | 2026-10-05 | 2026-10-19 |             |     0.00
+(4 rows)
+
+
+lab9=# SELECT * FROM books;
+ book_id |              title               |     isbn      | publication_year | available_copies
+---------+----------------------------------+---------------+------------------+------------------
+       3 | Fundamentals of Database Systems | 9780133970777 |             2015 |                1
+       1 | Database System Concepts         | 9780073523323 |             2010 |                2
+       2 | Jamilia                          | 9780863568985 |             1958 |                1
+(3 rows)
+
+
+lab9=# -- All tables in the database
+lab9=# \dt
+              List of tables
+ Schema |     Name     | Type  |  Owner
+--------+--------------+-------+----------
+ public | authors      | table | postgres
+ public | book_authors | table | postgres
+ public | books        | table | postgres
+ public | departments  | table | postgres
+ public | loans        | table | postgres
+ public | members      | table | postgres
+ public | students     | table | postgres
+ public | students_bad | table | postgres
+(8 rows)
+
+
+lab9=#
+lab9=# -- All relationships (foreign keys) of the library design
+lab9=# SELECT conrelid::regclass  AS child_table,
+lab9-#        confrelid::regclass AS parent_table,
+lab9-#        pg_get_constraintdef(oid) AS definition
+lab9-# FROM pg_constraint
+lab9-# WHERE contype = 'f'
+lab9-# ORDER BY 1;
+ child_table  | parent_table |                            definition
+--------------+--------------+-------------------------------------------------------------------
+ students     | departments  | FOREIGN KEY (department_id) REFERENCES departments(department_id)
+ book_authors | books        | FOREIGN KEY (book_id) REFERENCES books(book_id)
+ book_authors | authors      | FOREIGN KEY (author_id) REFERENCES authors(author_id)
+ loans        | members      | FOREIGN KEY (member_id) REFERENCES members(member_id)
+ loans        | books        | FOREIGN KEY (book_id) REFERENCES books(book_id)
+(5 rows)
+
+
+lab9=#
