@@ -1,0 +1,917 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+postgres=# CREATE DATABASE coffee;
+CREATE DATABASE
+postgres=# \c coffee
+You are now connected to database "coffee" as user "postgres".
+coffee=# DROP TABLE IF EXISTS cof_inventory, merch_inventory, coffees, suppliers,
+coffee-#                      coffee_houses, university_students CASCADE;
+ЗАМЕЧАНИЕ:  таблица "cof_inventory" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "merch_inventory" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "coffees" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "suppliers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "coffee_houses" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "university_students" не существует, пропускается
+DROP TABLE
+coffee=# DROP VIEW IF EXISTS coffee_prices;
+ЗАМЕЧАНИЕ:  представление "coffee_prices" не существует, пропускается
+DROP VIEW
+coffee=#
+coffee=# -- Suppliers of coffee and merchandise (parent table)
+coffee=# CREATE TABLE suppliers (
+coffee(#     sup_id   INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+coffee(#     sup_name VARCHAR(255),
+coffee(#     street   VARCHAR(255),
+coffee(#     city     VARCHAR(255),
+coffee(#     state    VARCHAR(255),
+coffee(#     zip      VARCHAR(255)
+coffee(# );
+CREATE TABLE
+coffee=#
+coffee=# -- Coffees: one supplier -> many coffees (One-to-Many)
+coffee=# CREATE TABLE coffees (
+coffee(#     cof_name VARCHAR(32),
+coffee(#     sup_id   INTEGER REFERENCES suppliers(sup_id),
+coffee(#     price    REAL,
+coffee(#     sales    INTEGER,
+coffee(#     total    INTEGER,
+coffee(#     PRIMARY KEY (cof_name, sup_id)            -- composite primary key
+coffee(# );
+CREATE TABLE
+coffee=#
+coffee=# -- Coffee stock in warehouses
+coffee=# CREATE TABLE cof_inventory (
+coffee(#     warehouse_id INTEGER,
+coffee(#     cof_name     VARCHAR(32),
+coffee(#     sup_id       INTEGER REFERENCES suppliers(sup_id),
+coffee(#     quan         INTEGER,
+coffee(#     date_val     DATE,
+coffee(#     PRIMARY KEY (warehouse_id, cof_name, sup_id)
+coffee(# );
+CREATE TABLE
+coffee=#
+coffee=# -- Merchandise (cups, mugs...) stock
+coffee=# CREATE TABLE merch_inventory (
+coffee(#     item_id   INTEGER PRIMARY KEY,
+coffee(#     item_name VARCHAR(255),
+coffee(#     sup_id    INTEGER REFERENCES suppliers(sup_id),
+coffee(#     quan      INTEGER,
+coffee(#     date      DATE
+coffee(# );
+CREATE TABLE
+coffee=#
+coffee=# -- Coffee houses (from lab: \d coffee_houses example)
+coffee=# CREATE TABLE coffee_houses (
+coffee(#     store_id INTEGER PRIMARY KEY,
+coffee(#     city     VARCHAR(255),
+coffee(#     coffee   INTEGER,
+coffee(#     merch    INTEGER,
+coffee(#     total    INTEGER
+coffee(# );
+CREATE TABLE
+coffee=#
+coffee=# -- University students (separate table, no relationships)
+coffee=# CREATE TABLE university_students (
+coffee(#     student_id    INTEGER PRIMARY KEY,
+coffee(#     first_name    TEXT,
+coffee(#     last_name     VARCHAR(50),
+coffee(#     email_address VARCHAR(100) UNIQUE,
+coffee(#     date_of_birth DATE
+coffee(# );
+CREATE TABLE
+coffee=#
+coffee=# -- Sample data
+coffee=# INSERT INTO suppliers (sup_name, street, city, state, zip) VALUES
+coffee-#     ('Acme Coffee',     '99 Market St',  'Groundsville', 'CA', '95199'),
+coffee-#     ('Superior Coffee', '1 Party Place', 'Mendocino',    'CA', '95460'),
+coffee-#     ('Bishkek Beans',   'Chui Ave 100',  'Bishkek',      'KG', '720001');
+INSERT 0 3
+coffee=#
+coffee=# INSERT INTO coffees VALUES
+coffee-#     ('Colombian',  1, 7.99, 175, 0),
+coffee-#     ('French_Roast', 2, 8.99, 150, 0),
+coffee-#     ('Espresso',   3, 9.99,  60, 0),
+coffee-#     ('Colombian_Decaf', 1, 8.99, 155, 0);
+INSERT 0 4
+coffee=#
+coffee=# INSERT INTO cof_inventory VALUES
+coffee-#     (1234, 'Colombian',    1, 50, '2026-10-01'),
+coffee-#     (1234, 'French_Roast', 2, 30, '2026-10-01'),
+coffee-#     (5678, 'Espresso',     3, 20, '2026-10-05');
+INSERT 0 3
+coffee=#
+coffee=# INSERT INTO merch_inventory VALUES
+coffee-#     (1, 'Cup_Large',  1, 100, '2026-10-01'),
+coffee-#     (2, 'Mug_Logo',   3,  40, '2026-10-03');
+INSERT 0 2
+coffee=#
+coffee=# INSERT INTO coffee_houses VALUES
+coffee-#     (10023, 'Mendocino', 3450, 2005, 5455),
+coffee-#     (33002, 'Bishkek',   4699, 3109, 7808);
+INSERT 0 2
+coffee=#
+coffee=# INSERT INTO university_students VALUES
+coffee-#     (1, 'Nigora', 'Karimova', 'nigora@alatoo.edu.kg', '2005-03-14'),
+coffee-#     (2, 'Timur',  'Asanov',   'timur@alatoo.edu.kg',  '2004-11-02');
+INSERT 0 2
+coffee=#
+coffee=# SELECT * FROM suppliers;
+ sup_id |    sup_name     |    street     |     city     | state |  zip
+--------+-----------------+---------------+--------------+-------+--------
+      1 | Acme Coffee     | 99 Market St  | Groundsville | CA    | 95199
+      2 | Superior Coffee | 1 Party Place | Mendocino    | CA    | 95460
+      3 | Bishkek Beans   | Chui Ave 100  | Bishkek      | KG    | 720001
+(3 rows)
+
+
+coffee=# SELECT * FROM coffees;
+    cof_name     | sup_id | price | sales | total
+-----------------+--------+-------+-------+-------
+ Colombian       |      1 |  7.99 |   175 |     0
+ French_Roast    |      2 |  8.99 |   150 |     0
+ Espresso        |      3 |  9.99 |    60 |     0
+ Colombian_Decaf |      1 |  8.99 |   155 |     0
+(4 rows)
+
+
+coffee=# -- From lab: all tables
+coffee=# \dt
+                 List of tables
+ Schema |        Name         | Type  |  Owner
+--------+---------------------+-------+----------
+ public | cof_inventory       | table | postgres
+ public | coffee_houses       | table | postgres
+ public | coffees             | table | postgres
+ public | merch_inventory     | table | postgres
+ public | suppliers           | table | postgres
+ public | university_students | table | postgres
+(6 rows)
+
+
+coffee=#
+coffee=# -- My additions:
+coffee=# -- \dt+  : the same list plus size and description
+coffee=# \dt+
+                                              List of tables
+ Schema |        Name         | Type  |  Owner   | Persistence | Access method |    Size    | Description
+--------+---------------------+-------+----------+-------------+---------------+------------+-------------
+ public | cof_inventory       | table | postgres | permanent   | heap          | 8192 bytes |
+ public | coffee_houses       | table | postgres | permanent   | heap          | 8192 bytes |
+ public | coffees             | table | postgres | permanent   | heap          | 8192 bytes |
+ public | merch_inventory     | table | postgres | permanent   | heap          | 8192 bytes |
+ public | suppliers           | table | postgres | permanent   | heap          | 16 kB      |
+ public | university_students | table | postgres | permanent   | heap          | 16 kB      |
+(6 rows)
+
+
+coffee=#
+coffee=# -- \dt with a pattern: only tables whose name starts with "cof"
+coffee=# \dt cof*
+              List of tables
+ Schema |     Name      | Type  |  Owner
+--------+---------------+-------+----------
+ public | cof_inventory | table | postgres
+ public | coffee_houses | table | postgres
+ public | coffees       | table | postgres
+(3 rows)
+
+
+coffee=#
+coffee=# -- only tables whose name contains "inventory"
+coffee=# \dt *inventory*
+               List of tables
+ Schema |      Name       | Type  |  Owner
+--------+-----------------+-------+----------
+ public | cof_inventory   | table | postgres
+ public | merch_inventory | table | postgres
+(2 rows)
+
+
+coffee=# -- From lab
+coffee=# \d coffee_houses
+                    Table "public.coffee_houses"
+  Column  |          Type          | Collation | Nullable | Default
+----------+------------------------+-----------+----------+---------
+ store_id | integer                |           | not null |
+ city     | character varying(255) |           |          |
+ coffee   | integer                |           |          |
+ merch    | integer                |           |          |
+ total    | integer                |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+
+
+coffee=#
+coffee=# -- My additions: the other tables
+coffee=# -- IDENTITY column, "Referenced by" section
+coffee=# \d suppliers
+                                Table "public.suppliers"
+  Column  |          Type          | Collation | Nullable |           Default
+----------+------------------------+-----------+----------+------------------------------
+ sup_id   | integer                |           | not null | generated always as identity
+ sup_name | character varying(255) |           |          |
+ street   | character varying(255) |           |          |
+ city     | character varying(255) |           |          |
+ state    | character varying(255) |           |          |
+ zip      | character varying(255) |           |          |
+Indexes:
+    "suppliers_pkey" PRIMARY KEY, btree (sup_id)
+Referenced by:
+    TABLE "cof_inventory" CONSTRAINT "cof_inventory_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+    TABLE "coffees" CONSTRAINT "coffees_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+    TABLE "merch_inventory" CONSTRAINT "merch_inventory_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=# -- composite primary key + foreign key
+coffee=# \d coffees
+                      Table "public.coffees"
+  Column  |         Type          | Collation | Nullable | Default
+----------+-----------------------+-----------+----------+---------
+ cof_name | character varying(32) |           | not null |
+ sup_id   | integer               |           | not null |
+ price    | real                  |           |          |
+ sales    | integer               |           |          |
+ total    | integer               |           |          |
+Indexes:
+    "coffees_pkey" PRIMARY KEY, btree (cof_name, sup_id)
+Foreign-key constraints:
+    "coffees_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=# \d cof_inventory
+                     Table "public.cof_inventory"
+    Column    |         Type          | Collation | Nullable | Default
+--------------+-----------------------+-----------+----------+---------
+ warehouse_id | integer               |           | not null |
+ cof_name     | character varying(32) |           | not null |
+ sup_id       | integer               |           | not null |
+ quan         | integer               |           |          |
+ date_val     | date                  |           |          |
+Indexes:
+    "cof_inventory_pkey" PRIMARY KEY, btree (warehouse_id, cof_name, sup_id)Foreign-key constraints:
+    "cof_inventory_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=# \d merch_inventory
+                   Table "public.merch_inventory"
+  Column   |          Type          | Collation | Nullable | Default
+-----------+------------------------+-----------+----------+---------
+ item_id   | integer                |           | not null |
+ item_name | character varying(255) |           |          |
+ sup_id    | integer                |           |          |
+ quan      | integer                |           |          |
+ date      | date                   |           |          |
+Indexes:
+    "merch_inventory_pkey" PRIMARY KEY, btree (item_id)
+Foreign-key constraints:
+    "merch_inventory_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=# -- UNIQUE constraint on email_address
+coffee=# \d university_students
+                   Table "public.university_students"
+    Column     |          Type          | Collation | Nullable | Default
+---------------+------------------------+-----------+----------+---------
+ student_id    | integer                |           | not null |
+ first_name    | text                   |           |          |
+ last_name     | character varying(50)  |           |          |
+ email_address | character varying(100) |           |          |
+ date_of_birth | date                   |           |          |
+Indexes:
+    "university_students_pkey" PRIMARY KEY, btree (student_id)
+    "university_students_email_address_key" UNIQUE CONSTRAINT, btree (email_address)
+
+
+coffee=#
+coffee=# -- \d+ : more details (storage, description)
+coffee=# \d+ coffee_houses
+                                               Table "public.coffee_houses"
+  Column  |          Type          | Collation | Nullable | Default | Storage  | Compression | Stats target | Description
+----------+------------------------+-----------+----------+---------+----------+-------------+--------------+-------------
+ store_id | integer                |           | not null |         | plain    |             |              |
+ city     | character varying(255) |           |          |         | extended |             |              |
+ coffee   | integer                |           |          |         | plain    |             |              |
+ merch    | integer                |           |          |         | plain    |             |              |
+ total    | integer                |           |          |         | plain    |             |              |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+Not-null constraints:
+    "coffee_houses_store_id_not_null" NOT NULL "store_id"
+Access method: heap
+
+
+coffee=#
+coffee=# -- \d without a name: all tables, views and sequences
+coffee=# \d
+                  List of relations
+ Schema |         Name         |   Type   |  Owner
+--------+----------------------+----------+----------
+ public | cof_inventory        | table    | postgres
+ public | coffee_houses        | table    | postgres
+ public | coffees              | table    | postgres
+ public | merch_inventory      | table    | postgres
+ public | suppliers            | table    | postgres
+ public | suppliers_sup_id_seq | sequence | postgres
+ public | university_students  | table    | postgres
+(7 rows)
+
+
+coffee=# \d coffee_houses
+                    Table "public.coffee_houses"
+  Column  |          Type          | Collation | Nullable | Default
+----------+------------------------+-----------+----------+---------
+ store_id | integer                |           | not null |
+ city     | character varying(255) |           |          |
+ coffee   | integer                |           |          |
+ merch    | integer                |           |          |
+ total    | integer                |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+
+
+coffee=#
+coffee=# -- Add a column
+coffee=# ALTER TABLE coffee_houses ADD COLUMN phone VARCHAR(20);
+ALTER TABLE
+coffee=# \d coffee_houses
+                    Table "public.coffee_houses"
+  Column  |          Type          | Collation | Nullable | Default
+----------+------------------------+-----------+----------+---------
+ store_id | integer                |           | not null |
+ city     | character varying(255) |           |          |
+ coffee   | integer                |           |          |
+ merch    | integer                |           |          |
+ total    | integer                |           |          |
+ phone    | character varying(20)  |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+
+
+coffee=#
+coffee=# -- Add a NOT NULL constraint and a CHECK
+coffee=# UPDATE coffee_houses SET city = 'Unknown' WHERE city IS NULL;
+UPDATE 0
+coffee=# ALTER TABLE coffee_houses ALTER COLUMN city SET NOT NULL;
+ALTER TABLE
+coffee=# ALTER TABLE coffee_houses ADD CONSTRAINT chk_total CHECK (total >= 0);
+ALTER TABLE
+coffee=# \d coffee_houses
+                    Table "public.coffee_houses"
+  Column  |          Type          | Collation | Nullable | Default
+----------+------------------------+-----------+----------+---------
+ store_id | integer                |           | not null |
+ city     | character varying(255) |           | not null |
+ coffee   | integer                |           |          |
+ merch    | integer                |           |          |
+ total    | integer                |           |          |
+ phone    | character varying(20)  |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+Check constraints:
+    "chk_total" CHECK (total >= 0)
+
+
+coffee=#
+coffee=# -- Rename a column and change a data type
+coffee=# ALTER TABLE coffee_houses RENAME COLUMN merch TO merch_sales;
+ALTER TABLE
+coffee=# ALTER TABLE coffee_houses ALTER COLUMN total TYPE BIGINT;
+ALTER TABLE
+coffee=# \d coffee_houses
+                     Table "public.coffee_houses"
+   Column    |          Type          | Collation | Nullable | Default
+-------------+------------------------+-----------+----------+---------
+ store_id    | integer                |           | not null |
+ city        | character varying(255) |           | not null |
+ coffee      | integer                |           |          |
+ merch_sales | integer                |           |          |
+ total       | bigint                 |           |          |
+ phone       | character varying(20)  |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+Check constraints:
+    "chk_total" CHECK (total >= 0)
+
+
+coffee=#
+coffee=# -- Add a foreign key: each coffee house gets a main supplier
+coffee=# ALTER TABLE coffee_houses ADD COLUMN main_sup_id INTEGER REFERENCES suppliers(sup_id);
+ALTER TABLE
+coffee=# \d coffee_houses
+                     Table "public.coffee_houses"
+   Column    |          Type          | Collation | Nullable | Default
+-------------+------------------------+-----------+----------+---------
+ store_id    | integer                |           | not null |
+ city        | character varying(255) |           | not null |
+ coffee      | integer                |           |          |
+ merch_sales | integer                |           |          |
+ total       | bigint                 |           |          |
+ phone       | character varying(20)  |           |          |
+ main_sup_id | integer                |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+Check constraints:
+    "chk_total" CHECK (total >= 0)
+Foreign-key constraints:
+    "coffee_houses_main_sup_id_fkey" FOREIGN KEY (main_sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=# -- "Referenced by" now also lists coffee_houses
+coffee=# \d suppliers
+                                Table "public.suppliers"
+  Column  |          Type          | Collation | Nullable |           Default
+----------+------------------------+-----------+----------+------------------------------
+ sup_id   | integer                |           | not null | generated always as identity
+ sup_name | character varying(255) |           |          |
+ street   | character varying(255) |           |          |
+ city     | character varying(255) |           |          |
+ state    | character varying(255) |           |          |
+ zip      | character varying(255) |           |          |
+Indexes:
+    "suppliers_pkey" PRIMARY KEY, btree (sup_id)
+Referenced by:
+    TABLE "cof_inventory" CONSTRAINT "cof_inventory_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+    TABLE "coffee_houses" CONSTRAINT "coffee_houses_main_sup_id_fkey" FOREIGN KEY (main_sup_id) REFERENCES suppliers(sup_id)
+    TABLE "coffees" CONSTRAINT "coffees_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+    TABLE "merch_inventory" CONSTRAINT "merch_inventory_sup_id_fkey" FOREIGN KEY (sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=#
+coffee=# -- Add an index
+coffee=# CREATE INDEX idx_coffee_houses_city ON coffee_houses(city);
+CREATE INDEX
+coffee=# \d coffee_houses
+                     Table "public.coffee_houses"
+   Column    |          Type          | Collation | Nullable | Default
+-------------+------------------------+-----------+----------+---------
+ store_id    | integer                |           | not null |
+ city        | character varying(255) |           | not null |
+ coffee      | integer                |           |          |
+ merch_sales | integer                |           |          |
+ total       | bigint                 |           |          |
+ phone       | character varying(20)  |           |          |
+ main_sup_id | integer                |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+    "idx_coffee_houses_city" btree (city)
+Check constraints:
+    "chk_total" CHECK (total >= 0)
+Foreign-key constraints:
+    "coffee_houses_main_sup_id_fkey" FOREIGN KEY (main_sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=#
+coffee=# -- Add a comment (description) to the table and see it with \dt+ and \d+
+coffee=# COMMENT ON TABLE coffee_houses IS 'Coffee shops and their sales';
+COMMENT
+coffee=# COMMENT ON COLUMN coffee_houses.total IS 'coffee + merch_sales';
+COMMENT
+coffee=# \dt+ coffee_houses
+                                                   List of tables
+ Schema |     Name      | Type  |  Owner   | Persistence | Access method |    Size    |         Description
+--------+---------------+-------+----------+-------------+---------------+------------+------------------------------
+ public | coffee_houses | table | postgres | permanent   | heap          | 8192 bytes | Coffee shops and their sales
+(1 row)
+
+
+coffee=# \d+ coffee_houses
+                                                     Table "public.coffee_houses"
+   Column    |          Type          | Collation | Nullable | Default | Storage  | Compression | Stats target |     Description
+-------------+------------------------+-----------+----------+---------+----------+-------------+--------------+----------------------
+ store_id    | integer                |           | not null |         | plain    |             |              |
+ city        | character varying(255) |           | not null |         | extended |             |              |
+ coffee      | integer                |           |          |         | plain    |             |              |
+ merch_sales | integer                |           |          |         | plain    |             |              |
+ total       | bigint                 |           |          |         | plain    |             |              | coffee + merch_sales
+ phone       | character varying(20)  |           |          |         | extended |             |              |
+ main_sup_id | integer                |           |          |         | plain    |             |              |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+    "idx_coffee_houses_city" btree (city)
+Check constraints:
+    "chk_total" CHECK (total >= 0)
+Foreign-key constraints:
+    "coffee_houses_main_sup_id_fkey" FOREIGN KEY (main_sup_id) REFERENCES suppliers(sup_id)
+Not-null constraints:
+    "coffee_houses_store_id_not_null" NOT NULL "store_id"
+    "coffee_houses_city_not_null" NOT NULL "city"
+Access method: heap
+
+
+coffee=#
+coffee=# -- Remove the extra column again
+coffee=# ALTER TABLE coffee_houses DROP COLUMN phone;
+ALTER TABLE
+coffee=# \d coffee_houses
+                     Table "public.coffee_houses"
+   Column    |          Type          | Collation | Nullable | Default
+-------------+------------------------+-----------+----------+---------
+ store_id    | integer                |           | not null |
+ city        | character varying(255) |           | not null |
+ coffee      | integer                |           |          |
+ merch_sales | integer                |           |          |
+ total       | bigint                 |           |          |
+ main_sup_id | integer                |           |          |
+Indexes:
+    "coffee_houses_pkey" PRIMARY KEY, btree (store_id)
+    "idx_coffee_houses_city" btree (city)
+Check constraints:
+    "chk_total" CHECK (total >= 0)
+Foreign-key constraints:
+    "coffee_houses_main_sup_id_fkey" FOREIGN KEY (main_sup_id) REFERENCES suppliers(sup_id)
+
+
+coffee=# -- Information about the current connection
+coffee=# \conninfo
+      Connection Information
+      Parameter       |   Value
+----------------------+-----------
+ Database             | coffee
+ Client User          | postgres
+ Host                 | localhost
+ Host Address         | ::1
+ Server Port          | 5432
+ Options              |
+ Protocol Version     | 3.0
+ Password Used        | true
+ GSSAPI Authenticated | false
+ Backend PID          | 13740
+ SSL Connection       | false
+ Superuser            | on
+ Hot Standby          | off
+(13 rows)
+
+
+coffee=#
+coffee=# -- List of all databases
+coffee=# \l
+                                                                  List of databases
+    Name    |  Owner   | Encoding | Locale Provider |         Collate         |          Ctype          | Locale | ICU Rules |   Access privileges
+------------+----------+----------+-----------------+-------------------------+-------------------------+--------+-----------+-----------------------
+ coffee     | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ lab8       | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ lab9       | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ mydb       | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ postgres   | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+ template0  | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           | =c/postgres          +
+            |          |          |                 |                         |                         |        |           | postgres=CTc/postgres
+ template1  | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           | =c/postgres          +
+            |          |          |                 |                         |                         |        |           | postgres=CTc/postgres
+ university | postgres | UTF8     | libc            | Russian_Kyrgyzstan.1251 | Russian_Kyrgyzstan.1251 |        |           |
+(8 rows)
+
+
+coffee=#
+coffee=# -- List of schemas
+coffee=# \dn
+      List of schemas
+  Name  |       Owner
+--------+-------------------
+ public | pg_database_owner
+(1 row)
+
+
+coffee=#
+coffee=# -- List of indexes
+coffee=# \di
+                                     List of indexes
+ Schema |                 Name                  | Type  |  Owner   |        Table
+--------+---------------------------------------+-------+----------+---------------------
+ public | cof_inventory_pkey                    | index | postgres | cof_inventory
+ public | coffee_houses_pkey                    | index | postgres | coffee_houses
+ public | coffees_pkey                          | index | postgres | coffees public | idx_coffee_houses_city                | index | postgres | coffee_houses
+ public | merch_inventory_pkey                  | index | postgres | merch_inventory
+ public | suppliers_pkey                        | index | postgres | suppliers
+ public | university_students_email_address_key | index | postgres | university_students
+ public | university_students_pkey              | index | postgres | university_students
+(8 rows)
+
+
+coffee=#
+coffee=# -- List of sequences (created by IDENTITY / SERIAL)
+coffee=# \ds
+                  List of sequences
+ Schema |         Name         |   Type   |  Owner
+--------+----------------------+----------+----------
+ public | suppliers_sup_id_seq | sequence | postgres
+(1 row)
+
+
+coffee=#
+coffee=# -- Create a view and list views
+coffee=# CREATE VIEW coffee_prices AS
+coffee-# SELECT c.cof_name, c.price, s.sup_name
+coffee-# FROM coffees c JOIN suppliers s ON c.sup_id = s.sup_id;
+CREATE VIEW
+coffee=# \dv
+              List of views
+ Schema |     Name      | Type |  Owner
+--------+---------------+------+----------
+ public | coffee_prices | view | postgres
+(1 row)
+
+
+coffee=# \d coffee_prices
+                    View "public.coffee_prices"
+  Column  |          Type          | Collation | Nullable | Default
+----------+------------------------+-----------+----------+---------
+ cof_name | character varying(32)  |           |          |
+ price    | real                   |           |          |
+ sup_name | character varying(255) |           |          |
+
+
+coffee=# SELECT * FROM coffee_prices;
+    cof_name     | price |    sup_name
+-----------------+-------+-----------------
+ Colombian       |  7.99 | Acme Coffee
+ French_Roast    |  8.99 | Superior Coffee
+ Espresso        |  9.99 | Bishkek Beans
+ Colombian_Decaf |  8.99 | Acme Coffee
+(4 rows)
+
+
+coffee=#
+coffee=# -- List of users / roles
+coffee=# \du
+                             List of roles
+ Role name |                         Attributes
+-----------+------------------------------------------------------------
+ postgres  | Superuser, Create role, Create DB, Replication, Bypass RLS
+
+
+coffee=#
+coffee=# -- Expanded display: one column per line (useful for wide tables)
+coffee=# \x on
+Expanded display is on.
+coffee=# SELECT * FROM suppliers WHERE sup_id = 1;
+-[ RECORD 1 ]----------
+sup_id   | 1
+sup_name | Acme Coffee
+street   | 99 Market St
+city     | Groundsville
+state    | CA
+zip      | 95199
+
+
+coffee=# \x off
+Expanded display is off.
+coffee=#
+coffee=# -- Help for psql commands and for SQL commands
+coffee=# -- \?                      (list of all backslash commands)
+coffee=# \h ALTER TABLE
+Command:     ALTER TABLE
+Description: change the definition of a table
+Syntax:
+ALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]
+    action [, ... ]
+ALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]
+    RENAME [ COLUMN ] column_name TO new_column_name
+ALTER TABLE [ IF EXISTS ] [ ONLY ] name [ * ]
+    RENAME CONSTRAINT constraint_name TO new_constraint_name
+ALTER TABLE [ IF EXISTS ] name
+    RENAME TO new_name
+ALTER TABLE [ IF EXISTS ] name
+    SET SCHEMA new_schema
+ALTER TABLE ALL IN TABLESPACE name [ OWNED BY role_name [, ... ] ]
+    SET TABLESPACE new_tablespace [ NOWAIT ]
+ALTER TABLE [ IF EXISTS ] name
+    ATTACH PARTITION partition_name { FOR VALUES partition_bound_spec | DEFAULT }
+ALTER TABLE [ IF EXISTS ] name
+    DETACH PARTITION partition_name [ CONCURRENTLY | FINALIZE ]
+
+where action is one of:
+
+    ADD [ COLUMN ] [ IF NOT EXISTS ] column_name data_type [ COLLATE collation ] [ column_constraint [ ... ] ]
+    DROP [ COLUMN ] [ IF EXISTS ] column_name [ RESTRICT | CASCADE ]
+    ALTER [ COLUMN ] column_name [ SET DATA ] TYPE data_type [ COLLATE collation ] [ USING expression ]
+    ALTER [ COLUMN ] column_name SET DEFAULT expression
+    ALTER [ COLUMN ] column_name DROP DEFAULT
+    ALTER [ COLUMN ] column_name { SET | DROP } NOT NULL
+    ALTER [ COLUMN ] column_name SET EXPRESSION AS ( expression )
+    ALTER [ COLUMN ] column_name DROP EXPRESSION [ IF EXISTS ]
+    ALTER [ COLUMN ] column_name ADD GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ]
+    ALTER [ COLUMN ] column_name { SET GENERATED { ALWAYS | BY DEFAULT } | SET sequence_option | RESTART [ [ WITH ] restart ] } [...]
+    ALTER [ COLUMN ] column_name DROP IDENTITY [ IF EXISTS ]
+    ALTER [ COLUMN ] column_name SET STATISTICS { integer | DEFAULT }
+    ALTER [ COLUMN ] column_name SET ( attribute_option = value [, ... ] )
+    ALTER [ COLUMN ] column_name RESET ( attribute_option [, ... ] )
+    ALTER [ COLUMN ] column_name SET STORAGE { PLAIN | EXTERNAL | EXTENDED | MAIN | DEFAULT }
+    ALTER [ COLUMN ] column_name SET COMPRESSION compression_method
+    ADD table_constraint [ NOT VALID ]
+    ADD table_constraint_using_index
+    ALTER CONSTRAINT constraint_name [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]
+    ALTER CONSTRAINT constraint_name [ INHERIT | NO INHERIT ]
+    VALIDATE CONSTRAINT constraint_name
+    DROP CONSTRAINT [ IF EXISTS ]  constraint_name [ RESTRICT | CASCADE ]
+    DISABLE TRIGGER [ trigger_name | ALL | USER ]
+    ENABLE TRIGGER [ trigger_name | ALL | USER ]
+    ENABLE REPLICA TRIGGER trigger_name
+    ENABLE ALWAYS TRIGGER trigger_name
+    DISABLE RULE rewrite_rule_name
+    ENABLE RULE rewrite_rule_name
+    ENABLE REPLICA RULE rewrite_rule_name
+    ENABLE ALWAYS RULE rewrite_rule_name
+    DISABLE ROW LEVEL SECURITY
+    ENABLE ROW LEVEL SECURITY
+    FORCE ROW LEVEL SECURITY
+    NO FORCE ROW LEVEL SECURITY
+    CLUSTER ON index_name
+    SET WITHOUT CLUSTER
+    SET WITHOUT OIDS
+    SET ACCESS METHOD { new_access_method | DEFAULT }
+    SET TABLESPACE new_tablespace
+    SET { LOGGED | UNLOGGED }
+    SET ( storage_parameter [= value] [, ... ] )
+    RESET ( storage_parameter [, ... ] )
+    INHERIT parent_table
+    NO INHERIT parent_table
+    OF type_name
+    NOT OF
+    OWNER TO { new_owner | CURRENT_ROLE | CURRENT_USER | SESSION_USER }
+    REPLICA IDENTITY { DEFAULT | USING INDEX index_name | FULL | NOTHING }
+
+and partition_bound_spec is:
+
+IN ( partition_bound_expr [, ...] ) |
+FROM ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] )
+  TO ( { partition_bound_expr | MINVALUE | MAXVALUE } [, ...] ) |
+WITH ( MODULUS numeric_literal, REMAINDER numeric_literal )
+
+and column_constraint is:
+
+[ CONSTRAINT constraint_name ]
+{ NOT NULL [ NO INHERIT ] |
+  NULL |
+  CHECK ( expression ) [ NO INHERIT ] |
+  DEFAULT default_expr |
+  GENERATED ALWAYS AS ( generation_expr ) [ STORED | VIRTUAL ] |
+  GENERATED { ALWAYS | BY DEFAULT } AS IDENTITY [ ( sequence_options ) ] |
+  UNIQUE [ NULLS [ NOT ] DISTINCT ] index_parameters |
+  PRIMARY KEY index_parameters |
+  REFERENCES reftable [ ( refcolumn ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]
+    [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }
+[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]
+
+and table_constraint is:
+
+[ CONSTRAINT constraint_name ]
+{ CHECK ( expression ) [ NO INHERIT ] |
+  NOT NULL column_name [ NO INHERIT ] |
+  UNIQUE [ NULLS [ NOT ] DISTINCT ] ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |
+  PRIMARY KEY ( column_name [, ... ] [, column_name WITHOUT OVERLAPS ] ) index_parameters |
+  EXCLUDE [ USING index_method ] ( exclude_element WITH operator [, ... ] ) index_parameters [ WHERE ( predicate ) ] |
+  FOREIGN KEY ( column_name [, ... ] [, PERIOD column_name ] ) REFERENCES reftable [ ( refcolumn [, ... ]  [, PERIOD refcolumn ] ) ]
+    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE referential_action ] [ ON UPDATE referential_action ] }
+[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ] [ ENFORCED | NOT ENFORCED ]
+
+and table_constraint_using_index is:
+
+    [ CONSTRAINT constraint_name ]
+    { UNIQUE | PRIMARY KEY } USING INDEX index_name
+    [ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]
+
+index_parameters in UNIQUE, PRIMARY KEY, and EXCLUDE constraints are:
+
+[ INCLUDE ( column_name [, ... ] ) ]
+[ WITH ( storage_parameter [= value] [, ... ] ) ]
+[ USING INDEX TABLESPACE tablespace_name ]
+
+exclude_element in an EXCLUDE constraint is:
+
+{ column_name | ( expression ) } [ COLLATE collation ] [ opclass [ ( opclass_parameter = value [, ... ] ) ] ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ]
+
+referential_action in a FOREIGN KEY/REFERENCES constraint is:
+
+{ NO ACTION | RESTRICT | CASCADE | SET NULL [ ( column_name [, ... ] ) ] | SET DEFAULT [ ( column_name [, ... ] ) ] }
+
+URL: https://www.postgresql.org/docs/18/sql-altertable.html
+
+coffee=# -- Equivalent of \dt
+coffee=# SELECT table_name, table_type
+coffee-# FROM information_schema.tables
+coffee-# WHERE table_schema = 'public'
+coffee-# ORDER BY table_name;
+     table_name      | table_type
+---------------------+------------
+ cof_inventory       | BASE TABLE
+ coffee_houses       | BASE TABLE
+ coffee_prices       | VIEW
+ coffees             | BASE TABLE
+ merch_inventory     | BASE TABLE
+ suppliers           | BASE TABLE
+ university_students | BASE TABLE
+(7 rows)
+
+
+coffee=#
+coffee=# -- Equivalent of \d coffee_houses (columns, types, nullable, default)
+coffee=# SELECT column_name, data_type, character_maximum_length AS max_length,
+coffee-#        is_nullable, column_default
+coffee-# FROM information_schema.columns
+coffee-# WHERE table_name = 'coffee_houses'
+coffee-# ORDER BY ordinal_position;
+ column_name |     data_type     | max_length | is_nullable | column_default
+-------------+-------------------+------------+-------------+----------------
+ store_id    | integer           |            | NO          |
+ city        | character varying |        255 | NO          |
+ coffee      | integer           |            | YES         |
+ merch_sales | integer           |            | YES         |
+ total       | bigint            |            | YES         |
+ main_sup_id | integer           |            | YES         |
+(6 rows)
+
+
+coffee=#
+coffee=# -- Number of columns in every table
+coffee=# SELECT table_name, COUNT(*) AS columns_count
+coffee-# FROM information_schema.columns
+coffee-# WHERE table_schema = 'public'
+coffee-# GROUP BY table_name
+coffee-# ORDER BY table_name;
+     table_name      | columns_count
+---------------------+---------------
+ cof_inventory       |             5
+ coffee_houses       |             6
+ coffee_prices       |             3
+ coffees             |             5
+ merch_inventory     |             5
+ suppliers           |             6
+ university_students |             5
+(7 rows)
+
+
+coffee=#
+coffee=# -- All constraints (PRIMARY KEY, FOREIGN KEY, UNIQUE, CHECK)
+coffee=# SELECT table_name, constraint_name, constraint_type
+coffee-# FROM information_schema.table_constraints
+coffee-# WHERE table_schema = 'public'
+coffee-#   AND constraint_type IN ('PRIMARY KEY', 'FOREIGN KEY', 'UNIQUE', 'CHECK')
+coffee-# ORDER BY table_name, constraint_type;
+     table_name      |             constraint_name             | constraint_type
+---------------------+-----------------------------------------+-----------------
+ cof_inventory       | cof_inventory_warehouse_id_not_null     | CHECK
+ cof_inventory       | cof_inventory_sup_id_not_null           | CHECK
+ cof_inventory       | cof_inventory_cof_name_not_null         | CHECK
+ cof_inventory       | cof_inventory_sup_id_fkey               | FOREIGN KEY cof_inventory       | cof_inventory_pkey                      | PRIMARY KEY coffee_houses       | coffee_houses_store_id_not_null         | CHECK
+ coffee_houses       | chk_total                               | CHECK
+ coffee_houses       | coffee_houses_city_not_null             | CHECK
+ coffee_houses       | coffee_houses_main_sup_id_fkey          | FOREIGN KEY coffee_houses       | coffee_houses_pkey                      | PRIMARY KEY coffees             | coffees_sup_id_not_null                 | CHECK
+ coffees             | coffees_cof_name_not_null               | CHECK
+ coffees             | coffees_sup_id_fkey                     | FOREIGN KEY coffees             | coffees_pkey                            | PRIMARY KEY merch_inventory     | merch_inventory_item_id_not_null        | CHECK
+ merch_inventory     | merch_inventory_sup_id_fkey             | FOREIGN KEY merch_inventory     | merch_inventory_pkey                    | PRIMARY KEY suppliers           | suppliers_sup_id_not_null               | CHECK
+ suppliers           | suppliers_pkey                          | PRIMARY KEY university_students | university_students_student_id_not_null | CHECK
+ university_students | university_students_pkey                | PRIMARY KEY university_students | university_students_email_address_key   | UNIQUE
+(22 rows)
+
+
+coffee=#
+coffee=# -- Number of rows and size of every table
+coffee=# ANALYZE;   -- refresh statistics so the row counts are correct
+ANALYZE
+coffee=# SELECT relname AS table_name,
+coffee-#        n_live_tup AS rows_count,
+coffee-#        pg_size_pretty(pg_total_relation_size(relid)) AS total_size
+coffee-# FROM pg_stat_user_tables
+coffee-# ORDER BY relname;
+     table_name      | rows_count | total_size
+---------------------+------------+------------
+ cof_inventory       |          3 | 24 kB
+ coffee_houses       |          2 | 40 kB
+ coffees             |          4 | 24 kB
+ merch_inventory     |          2 | 24 kB
+ suppliers           |          3 | 32 kB
+ university_students |          2 | 48 kB
+(6 rows)
+
+
+coffee=# SELECT tc.table_name   AS child_table,
+coffee-#        kcu.column_name AS fk_column,
+coffee-#        ccu.table_name  AS parent_table,
+coffee-#        ccu.column_name AS parent_column
+coffee-# FROM information_schema.table_constraints tc
+coffee-# JOIN information_schema.key_column_usage kcu
+coffee-#   ON tc.constraint_name = kcu.constraint_name
+coffee-# JOIN information_schema.constraint_column_usage ccu
+coffee-#   ON tc.constraint_name = ccu.constraint_name
+coffee-# WHERE tc.constraint_type = 'FOREIGN KEY'
+coffee-# ORDER BY parent_table, child_table;
+   child_table   |  fk_column  | parent_table | parent_column
+-----------------+-------------+--------------+---------------
+ cof_inventory   | sup_id      | suppliers    | sup_id
+ coffee_houses   | main_sup_id | suppliers    | sup_id
+ coffees         | sup_id      | suppliers    | sup_id
+ merch_inventory | sup_id      | suppliers    | sup_id
+(4 rows)
+
+
+coffee=#
