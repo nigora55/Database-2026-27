@@ -1,7 +1,11 @@
-# Database-2026-27
+# AUCA Databases Course (COM-424.1)
 
-I am **Baimatova Nigora**, a 3rd-year student of **Applied Mathematics and Informatics at AUCA**.
+**Student Name:** Baimatova Nigora
+**Major:** Applied Mathematics and Informatics at AUCA
+**Instructor:** Ph.D, Associate Professor Gulzada Esenalieva
 
-This repository is for my **Database course (Fall 2026)**.
+# Academic Integrity & Commitment Declaration
 
-I commit to completing all **labs and pet projects** for this course.
+I have read and agree to follow the terms, requirements, and policies of the AUCA Databases course (COM-424.1). I commit to completing all required course content, including laboratory assignments, coursework, and projects, and submitting them by the assigned deadlines.
+
+I will follow AUCA’s academic integrity rules. The work I submit in this repository will be my own, and I will acknowledge any sources or assistance where required by the course policies.
