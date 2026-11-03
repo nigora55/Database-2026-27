@@ -1,0 +1,1833 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# -- Lab 17. Files are written to C:/Users/Public/ because the PostgreSQL
+postgres=# -- service on Windows has permission to write there.
+postgres=#
+postgres=# CREATE DATABASE lab17;
+CREATE DATABASE
+postgres=# \c lab17
+You are now connected to database "lab17" as user "postgres".
+lab17=#
+lab17=# DROP TABLE IF EXISTS employees, products, customers, orders, customer_feedback, sales_data,
+lab17-#                      departments, log_table, temp_data, staging_customers, target_customers,
+lab17-#                      large_table CASCADE;
+ЗАМЕЧАНИЕ:  таблица "employees" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "products" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "customers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "orders" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "customer_feedback" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "sales_data" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "departments" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "log_table" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "temp_data" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "staging_customers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "target_customers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "large_table" не существует, пропускается
+DROP TABLE
+lab17=#
+lab17=# CREATE TABLE departments (
+lab17(#     dept_id   SERIAL PRIMARY KEY,
+lab17(#     dept_name VARCHAR(50)
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO departments (dept_name) VALUES ('IT'), ('Sales'), ('HR');
+INSERT 0 3
+lab17=#
+lab17=# CREATE TABLE employees (
+lab17(#     employee_id SERIAL PRIMARY KEY,
+lab17(#     first_name  VARCHAR(50),
+lab17(#     last_name   VARCHAR(50),
+lab17(#     email       VARCHAR(100),
+lab17(#     department  VARCHAR(50)
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO employees (first_name, last_name, email, department) VALUES
+lab17-#     ('Alina',  'Kim',         'alina@shop.kg',  'IT'),
+lab17-#     ('Timur',  'Bekov',       'timur@shop.kg',  'IT'),
+lab17-#     ('Bermet', 'Asanova',     'bermet@shop.kg', 'Sales'),
+lab17-#     ('Aibek',  'Toktomushev', NULL,             'Sales'),
+lab17-#     ('Zarina', 'Ismailova',   'zarina@shop.kg', 'HR');
+INSERT 0 5
+lab17=# SELECT * FROM employees;
+ employee_id | first_name |  last_name  |     email      | department
+-------------+------------+-------------+----------------+------------
+           1 | Alina      | Kim         | alina@shop.kg  | IT
+           2 | Timur      | Bekov       | timur@shop.kg  | IT
+           3 | Bermet     | Asanova     | bermet@shop.kg | Sales
+           4 | Aibek      | Toktomushev |                | Sales
+           5 | Zarina     | Ismailova   | zarina@shop.kg | HR
+(5 rows)
+
+
+lab17=#
+lab17=# CREATE TABLE products (
+lab17(#     product_id INTEGER PRIMARY KEY,
+lab17(#     name       VARCHAR(100),
+lab17(#     price      DECIMAL(10,2)
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO products VALUES
+lab17-#     (1, 'Big Panda Noodles', 90.00),
+lab17-#     (2, 'Rice 5kg',         560.00),
+lab17-#     (3, 'Headphones',      1250.00);
+INSERT 0 3
+lab17=# SELECT * FROM products;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   90.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+(3 rows)
+
+
+lab17=#
+lab17=# CREATE TABLE customers (
+lab17(#     customer_id INTEGER PRIMARY KEY,
+lab17(#     name        VARCHAR(100),
+lab17(#     city        VARCHAR(50)
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO customers VALUES
+lab17-#     (1, 'Aizada Bekova', 'Bishkek'),
+lab17-#     (2, 'Timur Asanov',  'Almaty'),
+lab17-#     (3, 'Dana Kim',      'Bishkek'),
+lab17-#     (4, 'Erlan Sadykov', 'Tashkent');
+INSERT 0 4
+lab17=# SELECT * FROM customers;
+ customer_id |     name      |   city
+-------------+---------------+----------
+           1 | Aizada Bekova | Bishkek
+           2 | Timur Asanov  | Almaty
+           3 | Dana Kim      | Bishkek
+           4 | Erlan Sadykov | Tashkent
+(4 rows)
+
+
+lab17=#
+lab17=# CREATE TABLE orders (
+lab17(#     order_id    SERIAL PRIMARY KEY,
+lab17(#     customer_id INTEGER REFERENCES customers(customer_id),
+lab17(#     order_date  DATE,
+lab17(#     total       DECIMAL(10,2)
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO orders (customer_id, order_date, total) VALUES
+lab17-#     (1, '2026-10-01', 450.00),
+lab17-#     (2, '2026-10-02', 1250.00),
+lab17-#     (1, '2026-10-05', 90.00),
+lab17-#     (3, '2026-10-07', 560.00),
+lab17-#     (4, '2026-10-07', 180.00);
+INSERT 0 5
+lab17=# SELECT * FROM orders;
+ order_id | customer_id | order_date |  total
+----------+-------------+------------+---------
+        1 |           1 | 2026-10-01 |  450.00
+        2 |           2 | 2026-10-02 | 1250.00
+        3 |           1 | 2026-10-05 |   90.00
+        4 |           3 | 2026-10-07 |  560.00
+        5 |           4 | 2026-10-07 |  180.00
+(5 rows)
+
+
+lab17=#
+lab17=# CREATE TABLE customer_feedback (
+lab17(#     id      SERIAL PRIMARY KEY,
+lab17(#     comment TEXT
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO customer_feedback (comment) VALUES
+lab17-#     ('Fast delivery, good price'),
+lab17-#     ('The "Big Panda" noodles are great, will buy again'),
+lab17-#     ('No comments');
+INSERT 0 3
+lab17=# SELECT * FROM customer_feedback;
+ id |                      comment
+----+---------------------------------------------------
+  1 | Fast delivery, good price
+  2 | The "Big Panda" noodles are great, will buy again
+  3 | No comments
+(3 rows)
+
+
+lab17=#
+lab17=# CREATE TABLE sales_data (
+lab17(#     id     INTEGER PRIMARY KEY,
+lab17(#     region VARCHAR(50),
+lab17(#     amount DECIMAL(10,2)
+lab17(# );
+CREATE TABLE
+lab17=#
+lab17=# CREATE TABLE log_table (id SERIAL PRIMARY KEY, message TEXT);
+CREATE TABLE
+lab17=# CREATE TABLE temp_data (id SERIAL PRIMARY KEY, value TEXT);
+CREATE TABLE
+lab17=# INSERT INTO log_table (message) VALUES ('service started'), ('backup test');
+INSERT 0 2
+lab17=# INSERT INTO temp_data (value) VALUES ('tmp1'), ('tmp2');
+INSERT 0 2
+lab17=# \dt
+                List of tables
+ Schema |       Name        | Type  |  Owner
+--------+-------------------+-------+----------
+ public | customer_feedback | table | postgres
+ public | customers         | table | postgres
+ public | departments       | table | postgres
+ public | employees         | table | postgres
+ public | log_table         | table | postgres
+ public | orders            | table | postgres
+ public | products          | table | postgres
+ public | sales_data        | table | postgres
+ public | temp_data         | table | postgres
+(9 rows)
+
+
+lab17=#
+lab17=# -- ===== 1. COPY command =====
+lab17=# -- From lab. Basic export to a CSV file
+lab17=# COPY employees TO 'C:/Users/Public/employees.csv' WITH CSV HEADER;
+COPY 5
+lab17=#
+lab17=# -- Import back: read the file into a new empty table with the same structure
+lab17=# CREATE TABLE employees_copy (LIKE employees INCLUDING ALL);
+CREATE TABLE
+lab17=# COPY employees_copy FROM 'C:/Users/Public/employees.csv' WITH CSV HEADER;
+COPY 5
+lab17=# SELECT * FROM employees_copy;
+ employee_id | first_name |  last_name  |     email      | department
+-------------+------------+-------------+----------------+------------
+           1 | Alina      | Kim         | alina@shop.kg  | IT
+           2 | Timur      | Bekov       | timur@shop.kg  | IT
+           3 | Bermet     | Asanova     | bermet@shop.kg | Sales
+           4 | Aibek      | Toktomushev |                | Sales
+           5 | Zarina     | Ismailova   | zarina@shop.kg | HR
+(5 rows)
+
+
+lab17=#
+lab17=# -- From lab. Custom delimiter and NULL representation
+lab17=# COPY employees TO 'C:/Users/Public/employees.txt'
+lab17-# WITH DELIMITER '|' NULL 'N/A' CSV HEADER;
+COPY 5
+lab17=# -- Read the file back as text lines to see its content
+lab17=# CREATE TEMP TABLE file_view (line TEXT);
+CREATE TABLE
+lab17=# COPY file_view FROM 'C:/Users/Public/employees.txt' WITH (FORMAT text, DELIMITER E'\x01');
+COPY 6
+lab17=# SELECT * FROM file_view;
+                       line
+---------------------------------------------------
+ employee_id|first_name|last_name|email|department
+ 1|Alina|Kim|alina@shop.kg|IT
+ 2|Timur|Bekov|timur@shop.kg|IT
+ 3|Bermet|Asanova|bermet@shop.kg|Sales
+ 4|Aibek|Toktomushev|N/A|Sales
+ 5|Zarina|Ismailova|zarina@shop.kg|HR
+(6 rows)
+
+
+lab17=#
+lab17=# -- Prepare the file new_employees.csv for the next example
+lab17=# COPY (SELECT * FROM (VALUES
+lab17(#         ('Kanat',   'Usupov',  'kanat@shop.kg'),
+lab17(#         ('Gulnara', 'Abdieva', 'gulnara@shop.kg')
+lab17(#       ) AS t(first_name, last_name, email))
+lab17-# TO 'C:/Users/Public/new_employees.csv' WITH CSV HEADER;
+COPY 2
+lab17=#
+lab17=# -- From lab. Import specific columns only (department stays NULL)
+lab17=# COPY employees(first_name, last_name, email)
+lab17-# FROM 'C:/Users/Public/new_employees.csv' WITH CSV HEADER;
+COPY 2
+lab17=# SELECT * FROM employees;
+ employee_id | first_name |  last_name  |      email      | department
+-------------+------------+-------------+-----------------+------------
+           1 | Alina      | Kim         | alina@shop.kg   | IT
+           2 | Timur      | Bekov       | timur@shop.kg   | IT
+           3 | Bermet     | Asanova     | bermet@shop.kg  | Sales
+           4 | Aibek      | Toktomushev |                 | Sales
+           5 | Zarina     | Ismailova   | zarina@shop.kg  | HR
+           6 | Kanat      | Usupov      | kanat@shop.kg   |
+           7 | Gulnara    | Abdieva     | gulnara@shop.kg |
+(7 rows)
+
+
+lab17=#
+lab17=# -- From lab. Export the result of a query
+lab17=# COPY (SELECT * FROM employees WHERE department = 'IT')
+lab17-# TO 'C:/Users/Public/it_employees.csv' WITH CSV HEADER;
+COPY 2
+lab17=# TRUNCATE file_view;
+TRUNCATE TABLE
+lab17=# COPY file_view FROM 'C:/Users/Public/it_employees.csv' WITH (FORMAT text, DELIMITER E'\x01');
+COPY 3
+lab17=# SELECT * FROM file_view;
+                       line
+---------------------------------------------------
+ employee_id,first_name,last_name,email,department
+ 1,Alina,Kim,alina@shop.kg,IT
+ 2,Timur,Bekov,timur@shop.kg,IT
+(3 rows)
+
+
+lab17=#
+lab17=# -- EXPECTED ERROR: COPY TO a file needs an absolute path
+lab17=# COPY employees TO 'employees.csv' WITH CSV HEADER;
+ОШИБКА:  при выполнении COPY в файл нельзя указывать относительный путь
+lab17=#
+lab17=# -- ===== 2. CSV export =====
+lab17=# -- From lab. Basic CSV export with headers
+lab17=# COPY products TO 'C:/Users/Public/products.csv' WITH CSV HEADER;
+COPY 3
+lab17=#
+lab17=# -- From lab. Custom delimiter ; and quote "
+lab17=# COPY customers TO 'C:/Users/Public/customers.csv'
+lab17-# WITH CSV HEADER DELIMITER ';' QUOTE '"';
+COPY 4
+lab17=# TRUNCATE file_view;
+TRUNCATE TABLE
+lab17=# COPY file_view FROM 'C:/Users/Public/customers.csv' WITH (FORMAT text, DELIMITER E'\x01');
+COPY 5
+lab17=# SELECT * FROM file_view;
+           line
+--------------------------
+ customer_id;name;city
+ 1;Aizada Bekova;Bishkek
+ 2;Timur Asanov;Almaty
+ 3;Dana Kim;Bishkek
+ 4;Erlan Sadykov;Tashkent
+(5 rows)
+
+
+lab17=#
+lab17=# -- From lab. FORCE_QUOTE puts the date column in quotes
+lab17=# -- EXPECTED ERROR: FORCE_QUOTE (...) works only in the new syntax WITH ( ... )
+lab17=# COPY orders TO 'C:/Users/Public/orders.csv'
+lab17-# WITH CSV HEADER FORCE_QUOTE (order_date);
+ОШИБКА:  ошибка синтаксиса (примерное положение: "FORCE_QUOTE")
+LINE 2: WITH CSV HEADER FORCE_QUOTE (order_date);
+                        ^
+lab17=# -- My fix: new syntax with options in parentheses
+lab17=# COPY orders TO 'C:/Users/Public/orders.csv'
+lab17-# WITH (FORMAT csv, HEADER, FORCE_QUOTE (order_date));
+COPY 5
+lab17=# TRUNCATE file_view;
+TRUNCATE TABLE
+lab17=# COPY file_view FROM 'C:/Users/Public/orders.csv' WITH (FORMAT text, DELIMITER E'\x01');
+COPY 6
+lab17=# SELECT * FROM file_view;
+                 line
+---------------------------------------
+ order_id,customer_id,order_date,total
+ 1,1,"2026-10-01",450.00
+ 2,2,"2026-10-02",1250.00
+ 3,1,"2026-10-05",90.00
+ 4,3,"2026-10-07",560.00
+ 5,4,"2026-10-07",180.00
+(6 rows)
+
+
+lab17=#
+lab17=# -- ===== 3. CSV import =====
+lab17=# -- From lab. Basic CSV import (table already exists)
+lab17=# -- EXPECTED ERROR: the same rows are already in products (primary key)
+lab17=# COPY products FROM 'C:/Users/Public/products.csv' WITH CSV HEADER;
+ОШИБКА:  повторяющееся значение ключа нарушает ограничение уникальности "products_pkey"
+DETAIL:  Ключ "(product_id)=(1)" уже существует.
+CONTEXT:  COPY products, строка 2
+lab17=# -- Empty the table first, then the import works
+lab17=# TRUNCATE products;
+TRUNCATE TABLE
+lab17=# COPY products FROM 'C:/Users/Public/products.csv' WITH CSV HEADER;
+COPY 3
+lab17=# SELECT * FROM products;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   90.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+(3 rows)
+
+
+lab17=#
+lab17=# -- Prepare a file with a bad row (price 'abc' is not a number)
+lab17=# COPY (SELECT * FROM (VALUES
+lab17(#         ('4', 'Power Bank', '1800.00'),
+lab17(#         ('5', 'T-shirt',    'abc'),
+lab17(#         ('6', 'Umbrella',   '400.00')
+lab17(#       ) AS t(product_id, name, price))
+lab17-# TO 'C:/Users/Public/products_with_errors.csv' WITH CSV HEADER;
+COPY 3
+lab17=#
+lab17=# -- Without ON_ERROR the whole import fails
+lab17=# -- EXPECTED ERROR: invalid input syntax for type numeric
+lab17=# COPY products FROM 'C:/Users/Public/products_with_errors.csv' WITH CSV HEADER;
+ОШИБКА:  неверный синтаксис для типа numeric: "abc"
+CONTEXT:  COPY products, строка 3, столбец price: "abc"
+lab17=# SELECT * FROM products;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   90.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+(3 rows)
+
+
+lab17=#
+lab17=# -- From lab. ON_ERROR IGNORE skips the bad row (PostgreSQL 17+)
+lab17=# COPY products FROM 'C:/Users/Public/products_with_errors.csv'
+lab17-# WITH CSV HEADER ON_ERROR IGNORE;
+ЗАМЕЧАНИЕ:  1 строка была пропущена из-за несовместимости типов данных
+COPY 2
+lab17=# SELECT * FROM products;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   90.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+          4 | Power Bank        | 1800.00
+          6 | Umbrella          |  400.00
+(5 rows)
+
+
+lab17=#
+lab17=# -- From lab. Import with a specific encoding
+lab17=# COPY (SELECT 7, 'Green Tea', 150.00) TO 'C:/Users/Public/products_utf8.csv'
+lab17-# WITH CSV HEADER ENCODING 'UTF8';
+COPY 1
+lab17=# COPY products FROM 'C:/Users/Public/products_utf8.csv'
+lab17-# WITH CSV HEADER ENCODING 'UTF8';
+COPY 1
+lab17=# SELECT * FROM products;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   90.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+          4 | Power Bank        | 1800.00
+          6 | Umbrella          |  400.00
+          7 | Green Tea         |  150.00
+(6 rows)
+
+
+lab17=#
+lab17=# -- ===== 4. Special cases =====
+lab17=# -- From lab. Embedded commas and quotes: CSV wraps them in quotes and doubles the "
+lab17=# COPY customer_feedback TO 'C:/Users/Public/feedback.csv'
+lab17-# WITH CSV HEADER DELIMITER ',' QUOTE '"' ESCAPE '"';
+COPY 3
+lab17=# TRUNCATE file_view;
+TRUNCATE TABLE
+lab17=# COPY file_view FROM 'C:/Users/Public/feedback.csv' WITH (FORMAT text, DELIMITER E'\x01');
+COPY 4
+lab17=# SELECT * FROM file_view;
+                          line
+---------------------------------------------------------
+ id,comment
+ 1,"Fast delivery, good price"
+ 2,"The ""Big Panda"" noodles are great, will buy again"
+ 3,No comments
+(4 rows)
+
+
+lab17=#
+lab17=# -- Prepare sales.csv where an empty amount is written as the word NULL
+lab17=# COPY (SELECT * FROM (VALUES (1, 'Bishkek', '1500.00'), (2, 'Almaty', 'NULL'), (3, 'Osh', '700.00'))
+lab17(#       AS t(id, region, amount))
+lab17-# TO 'C:/Users/Public/sales.csv' WITH CSV HEADER;
+COPY 3
+lab17=#
+lab17=# -- From lab. Custom NULL representation on import
+lab17=# COPY sales_data FROM 'C:/Users/Public/sales.csv'
+lab17-# WITH CSV HEADER NULL 'NULL';
+COPY 3
+lab17=# SELECT * FROM sales_data;
+ id | region  | amount
+----+---------+---------
+  1 | Bishkek | 1500.00
+  2 | Almaty  |
+  3 | Osh     |  700.00
+(3 rows)
+
+
+lab17=# SELECT id, region FROM sales_data WHERE amount IS NULL;
+ id | region
+----+--------
+  2 | Almaty
+(1 row)
+
+
+lab17=#
+lab17=# -- ===== 5. WAL and point-in-time recovery settings =====
+lab17=# -- Current settings (archive_mode is off by default; turning it on needs a server restart)
+lab17=# SHOW wal_level;
+ wal_level
+-----------
+ replica
+(1 row)
+
+
+lab17=# SHOW archive_mode;
+ archive_mode
+--------------
+ off
+(1 row)
+
+
+lab17=# SHOW archive_command;
+ archive_command
+-----------------
+ (disabled)
+(1 row)
+
+
+lab17=#
+lab17=# -- From lab. Named restore point (PITR can later stop exactly here)
+lab17=# SELECT pg_create_restore_point('before_data_migration') IS NOT NULL AS restore_point_created;
+ restore_point_created
+-----------------------
+ t
+(1 row)
+
+
+lab17=#
+lab17=# -- From lab. Force a switch to a new WAL segment
+lab17=# SELECT pg_switch_wal() IS NOT NULL AS wal_switched;
+ wal_switched
+--------------
+ t
+(1 row)
+
+
+lab17=# SELECT pg_walfile_name(pg_current_wal_lsn()) AS current_wal_file;
+     current_wal_file
+--------------------------
+ 000000010000000000000011
+(1 row)
+
+
+lab17=#
+lab17=# -- ===== 6. Logical replication =====
+lab17=# -- From lab. Publication on the source database
+lab17=# CREATE PUBLICATION migration_pub FOR ALL TABLES;
+ПРЕДУПРЕЖДЕНИЕ:  уровень wal_level недостаточен для публикации логических изменений
+ПОДСКАЗКА:  Задайте для wal_level значение "logical" до создания подписок.
+CREATE PUBLICATION
+lab17=# SELECT pubname, puballtables FROM pg_publication;
+    pubname    | puballtables
+---------------+--------------
+ migration_pub | t
+(1 row)
+
+
+lab17=#
+lab17=# -- From lab. Subscription (NOT run here). It must be created in ANOTHER database or
+lab17=# -- server with a password in the connection string, and the source needs
+lab17=# -- wal_level = logical (ours is replica, see SHOW wal_level above):
+lab17=# --   CREATE SUBSCRIPTION migration_sub
+lab17=# --   CONNECTION 'host=source_host dbname=source_db user=replication_user'
+lab17=# --   PUBLICATION migration_pub;
+lab17=# DROP PUBLICATION migration_pub;
+DROP PUBLICATION
+lab17=#
+lab17=# -- ===== 7. ETL pipeline migration =====
+lab17=# -- From lab. Staging table with the same columns but no rows (WHERE 1=0)
+lab17=# CREATE TABLE staging_customers AS SELECT * FROM customers WHERE 1=0;
+SELECT 0
+lab17=# \d staging_customers
+                   Table "public.staging_customers"
+   Column    |          Type          | Collation | Nullable | Default
+-------------+------------------------+-----------+----------+---------
+ customer_id | integer                |           |          |
+ name        | character varying(100) |           |          |
+ city        | character varying(50)  |           |          |
+
+
+lab17=#
+lab17=# -- From lab. Extract a batch to a file
+lab17=# COPY (SELECT * FROM customers ORDER BY customer_id LIMIT 10000 OFFSET 0)
+lab17-# TO 'C:/Users/Public/customers_batch_1.csv' WITH CSV HEADER;
+COPY 4
+lab17=#
+lab17=# -- From lab. Load the batch into staging
+lab17=# COPY staging_customers FROM 'C:/Users/Public/customers_batch_1.csv' WITH CSV HEADER;
+COPY 4
+lab17=# SELECT * FROM staging_customers;
+ customer_id |     name      |   city
+-------------+---------------+----------
+           1 | Aizada Bekova | Bishkek
+           2 | Timur Asanov  | Almaty
+           3 | Dana Kim      | Bishkek
+           4 | Erlan Sadykov | Tashkent
+(4 rows)
+
+
+lab17=#
+lab17=# -- Target table already has an old version of customer 1 and customer 2
+lab17=# CREATE TABLE target_customers (
+lab17(#     customer_id INTEGER PRIMARY KEY,
+lab17(#     name        VARCHAR(100),
+lab17(#     city        VARCHAR(50)
+lab17(# );
+CREATE TABLE
+lab17=# INSERT INTO target_customers VALUES (1, 'Aizada B.', 'Osh'), (2, 'Timur Asanov', 'Almaty');
+INSERT 0 2
+lab17=# SELECT * FROM target_customers;
+ customer_id |     name     |  city
+-------------+--------------+--------
+           1 | Aizada B.    | Osh
+           2 | Timur Asanov | Almaty
+(2 rows)
+
+
+lab17=#
+lab17=# -- From lab. Validate and merge: new rows are inserted, existing rows are updated
+lab17=# INSERT INTO target_customers
+lab17-# SELECT * FROM staging_customers
+lab17-# ON CONFLICT (customer_id) DO UPDATE SET
+lab17-#     name = EXCLUDED.name,
+lab17-#     city = EXCLUDED.city;
+INSERT 0 4
+lab17=# SELECT * FROM target_customers ORDER BY customer_id;
+ customer_id |     name      |   city
+-------------+---------------+----------
+           1 | Aizada Bekova | Bishkek
+           2 | Timur Asanov  | Almaty
+           3 | Dana Kim      | Bishkek
+           4 | Erlan Sadykov | Tashkent
+(4 rows)
+
+
+lab17=#
+lab17=# -- Post-migration validation: row counts must be equal
+lab17=# SELECT (SELECT COUNT(*) FROM customers) AS source_rows,
+lab17-#        (SELECT COUNT(*) FROM target_customers) AS target_rows;
+ source_rows | target_rows
+-------------+-------------
+           4 |           4
+(1 row)
+
+
+lab17=#
+lab17=# -- ===== 8. Large tables: partitioning =====
+lab17=# CREATE TABLE large_table (
+lab17(#     id        SERIAL,
+lab17(#     sale_date DATE NOT NULL,
+lab17(#     amount    DECIMAL(10,2)
+lab17(# ) PARTITION BY RANGE (sale_date);
+CREATE TABLE
+lab17=#
+lab17=# -- From lab. One partition per year
+lab17=# CREATE TABLE large_table_2023 PARTITION OF large_table
+lab17-# FOR VALUES FROM ('2023-01-01') TO ('2024-01-01');
+CREATE TABLE
+lab17=# CREATE TABLE large_table_2024 PARTITION OF large_table
+lab17-# FOR VALUES FROM ('2024-01-01') TO ('2025-01-01');
+CREATE TABLE
+lab17=#
+lab17=# INSERT INTO large_table (sale_date, amount)
+lab17-# SELECT DATE '2023-01-01' + (g % 730), (g % 500) + 10
+lab17-# FROM generate_series(1, 2000) AS g;
+INSERT 0 2000
+lab17=# SELECT tableoid::regclass AS partition, COUNT(*) FROM large_table GROUP BY 1 ORDER BY 1;
+    partition     | count
+------------------+-------
+ large_table_2023 |  1094
+ large_table_2024 |   906
+(2 rows)
+
+
+lab17=# \d+ large_table
+                                                     Partitioned table "public.large_table"
+  Column   |     Type      | Collation | Nullable |                 Default                 | Storage | Compression | Stats target | Description
+-----------+---------------+-----------+----------+-----------------------------------------+---------+-------------+--------------+-------------
+ id        | integer       |           | not null | nextval('large_table_id_seq'::regclass) | plain   |             |              |
+ sale_date | date          |           | not null |                                         | plain   |             |              |
+ amount    | numeric(10,2) |           |          |                                         | main    |             |              |
+Partition key: RANGE (sale_date)
+Partitions: large_table_2023 FOR VALUES FROM ('2023-01-01') TO ('2024-01-01'),
+            large_table_2024 FOR VALUES FROM ('2024-01-01') TO ('2025-01-01')
+
+
+lab17=#
+lab17=# -- EXPECTED ERROR: no partition for year 2025
+lab17=# INSERT INTO large_table (sale_date, amount) VALUES ('2025-03-01', 100);
+ОШИБКА:  для строки не найдена секция в отношении "large_table"
+DETAIL:  Ключ секционирования для неподходящей строки содержит (sale_date) = (2025-03-01).
+lab17=#
+lab17=# -- ===== MY EXAMPLES (retail) =====
+lab17=# -- My example 1: daily sales report for the business team.
+lab17=# -- Export the result of an analytical query to CSV (can be opened in Excel)
+lab17=# COPY (
+lab17(#     SELECT o.order_date,
+lab17(#            c.city,
+lab17(#            COUNT(*) AS orders,
+lab17(#            SUM(o.total) AS revenue
+lab17(#     FROM orders o
+lab17(#     JOIN customers c ON o.customer_id = c.customer_id
+lab17(#     GROUP BY o.order_date, c.city
+lab17(#     ORDER BY o.order_date, c.city
+lab17(# ) TO 'C:/Users/Public/daily_sales_report.csv' WITH CSV HEADER DELIMITER ';';
+COPY 5
+lab17=# TRUNCATE file_view;
+TRUNCATE TABLE
+lab17=# COPY file_view FROM 'C:/Users/Public/daily_sales_report.csv' WITH (FORMAT text, DELIMITER E'\x01');
+COPY 6
+lab17=# SELECT * FROM file_view;
+              line
+--------------------------------
+ order_date;city;orders;revenue
+ 2026-10-01;Bishkek;1;450.00
+ 2026-10-02;Almaty;1;1250.00
+ 2026-10-05;Bishkek;1;90.00
+ 2026-10-07;Bishkek;1;560.00
+ 2026-10-07;Tashkent;1;180.00
+(6 rows)
+
+
+lab17=#
+lab17=# -- My example 2: new price list from a supplier.
+lab17=# -- Load it into staging (bad rows skipped), then update prices and add new products.
+lab17=# COPY (SELECT * FROM (VALUES
+lab17(#         ('1', 'Big Panda Noodles', '95.00'),     -- price changed
+lab17(#         ('2', 'Rice 5kg',          '560.00'),    -- same price
+lab17(#         ('8', 'Coffee Beans',      'n/a'),       -- bad price
+lab17(#         ('9', 'Milk 1L',           '85.00')      -- new product
+lab17(#       ) AS t(product_id, name, price))
+lab17-# TO 'C:/Users/Public/supplier_prices.csv' WITH CSV HEADER;
+COPY 4
+lab17=#
+lab17=# CREATE TABLE staging_prices (LIKE products);
+CREATE TABLE
+lab17=# COPY staging_prices FROM 'C:/Users/Public/supplier_prices.csv'
+lab17-# WITH CSV HEADER ON_ERROR IGNORE;
+ЗАМЕЧАНИЕ:  1 строка была пропущена из-за несовместимости типов данных
+COPY 3
+lab17=# SELECT * FROM staging_prices;
+ product_id |       name        | price
+------------+-------------------+--------
+          1 | Big Panda Noodles |  95.00
+          2 | Rice 5kg          | 560.00
+          9 | Milk 1L           |  85.00
+(3 rows)
+
+
+lab17=#
+lab17=# -- What will change (old price vs new price)
+lab17=# SELECT s.product_id, s.name, p.price AS old_price, s.price AS new_price,
+lab17-#        CASE WHEN p.product_id IS NULL THEN 'new product'
+lab17-#             WHEN p.price <> s.price THEN 'price changed'
+lab17-#             ELSE 'no change' END AS action
+lab17-# FROM staging_prices s
+lab17-# LEFT JOIN products p ON p.product_id = s.product_id
+lab17-# ORDER BY s.product_id;
+ product_id |       name        | old_price | new_price |    action
+------------+-------------------+-----------+-----------+---------------
+          1 | Big Panda Noodles |     90.00 |     95.00 | price changed
+          2 | Rice 5kg          |    560.00 |    560.00 | no change
+          9 | Milk 1L           |           |     85.00 | new product
+(3 rows)
+
+
+lab17=#
+lab17=# BEGIN;
+BEGIN
+lab17=*# INSERT INTO products
+lab17-*# SELECT * FROM staging_prices
+lab17-*# ON CONFLICT (product_id) DO UPDATE SET price = EXCLUDED.price;
+INSERT 0 3
+lab17=*# COMMIT;
+COMMIT
+lab17=# SELECT * FROM products ORDER BY product_id;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   95.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+          4 | Power Bank        | 1800.00
+          6 | Umbrella          |  400.00
+          7 | Green Tea         |  150.00
+          9 | Milk 1L           |   85.00
+(7 rows)
+
+
+lab17=#
+lab17=# \dt
+                       List of tables
+  Schema   |       Name        |       Type        |  Owner
+-----------+-------------------+-------------------+----------
+ pg_temp_4 | file_view         | table             | postgres
+ public    | customer_feedback | table             | postgres
+ public    | customers         | table             | postgres
+ public    | departments       | table             | postgres
+ public    | employees         | table             | postgres
+ public    | employees_copy    | table             | postgres
+ public    | large_table       | partitioned table | postgres
+ public    | large_table_2023  | table             | postgres
+ public    | large_table_2024  | table             | postgres
+ public    | log_table         | table             | postgres
+ public    | orders            | table             | postgres
+ public    | products          | table             | postgres
+ public    | sales_data        | table             | postgres
+ public    | staging_customers | table             | postgres
+ public    | staging_prices    | table             | postgres
+ public    | target_customers  | table             | postgres
+ public    | temp_data         | table             | postgres
+(17 rows)
+
+
+lab17=#
+lab17=# \q
+Для продолжения нажмите любую клавишу . . .
+
+C:\>cd "C:\Program Files\PostgreSQL\18\bin"
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== pg_dump: creating backups =====
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Basic database backup to SQL file
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 > C:\Users\Public\backup.sql
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Compressed custom format backup (recommended)
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -Fc > C:\Users\Public\backup.dump
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Backup specific tables only
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -t employees -t departments > C:\Users\Public\tables_backup.sql
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>findstr /C:"CREATE TABLE" C:\Users\Public\tables_backup.sql
+CREATE TABLE public.departments (
+CREATE TABLE public.employees (
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Backup with verbose output
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -Fc -v > C:\Users\Public\backup_verbose.dump
+Password:
+pg_dump: last built-in OID is 16383
+pg_dump: reading extensions
+pg_dump: identifying extension members
+pg_dump: reading schemas
+pg_dump: reading user-defined tables
+pg_dump: reading user-defined functions
+pg_dump: reading user-defined types
+pg_dump: reading procedural languages
+pg_dump: reading user-defined aggregate functions
+pg_dump: reading user-defined operators
+pg_dump: reading user-defined access methods
+pg_dump: reading user-defined operator classes
+pg_dump: reading user-defined operator families
+pg_dump: reading user-defined text search parsers
+pg_dump: reading user-defined text search templates
+pg_dump: reading user-defined text search dictionaries
+pg_dump: reading user-defined text search configurations
+pg_dump: reading user-defined foreign-data wrappers
+pg_dump: reading user-defined foreign servers
+pg_dump: reading default privileges
+pg_dump: reading user-defined collations
+pg_dump: reading user-defined conversions
+pg_dump: reading type casts
+pg_dump: reading transforms
+pg_dump: reading table inheritance information
+pg_dump: reading event triggers
+pg_dump: finding extension tables
+pg_dump: finding inheritance relationships
+pg_dump: reading column info for interesting tables
+pg_dump: finding table default expressions
+pg_dump: flagging inherited columns in subtables
+pg_dump: reading partitioning data
+pg_dump: reading indexes
+pg_dump: flagging indexes in partitioned tables
+pg_dump: reading extended statistics
+pg_dump: reading constraints
+pg_dump: reading triggers
+pg_dump: reading rewrite rules
+pg_dump: reading policies
+pg_dump: reading row-level security policies
+pg_dump: reading publications
+pg_dump: reading publication membership of tables
+pg_dump: reading publication membership of schemas
+pg_dump: reading subscriptions
+pg_dump: reading large objects
+pg_dump: reading dependency data
+pg_dump: saving encoding = UTF8
+pg_dump: saving standard_conforming_strings = on
+pg_dump: saving search_path =
+pg_dump: saving database definition
+pg_dump: dumping contents of table "public.customer_feedback"
+pg_dump: dumping contents of table "public.customers"
+pg_dump: dumping contents of table "public.departments"
+pg_dump: dumping contents of table "public.employees"
+pg_dump: dumping contents of table "public.employees_copy"
+pg_dump: dumping contents of table "public.large_table_2023"
+pg_dump: dumping contents of table "public.large_table_2024"
+pg_dump: dumping contents of table "public.log_table"
+pg_dump: dumping contents of table "public.orders"
+pg_dump: dumping contents of table "public.products"
+pg_dump: dumping contents of table "public.sales_data"
+pg_dump: dumping contents of table "public.staging_customers"
+pg_dump: dumping contents of table "public.staging_prices"
+pg_dump: dumping contents of table "public.target_customers"
+pg_dump: dumping contents of table "public.temp_data"
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Backup validation =====
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Test backup integrity: list of objects inside the dump (only tables shown)
+C:\Program Files\PostgreSQL\18\bin>pg_restore --list C:\Users\Public\backup.dump | findstr "TABLE"
+226; 1259 18334 TABLE public customer_feedback postgres
+222; 1259 18316 TABLE public customers postgres
+218; 1259 18298 TABLE public departments postgres
+220; 1259 18305 TABLE public employees postgres
+232; 1259 18365 TABLE public employees_copy postgres
+236; 1259 18402 TABLE public large_table postgres
+237; 1259 18406 TABLE public large_table_2023 postgres
+238; 1259 18410 TABLE public large_table_2024 postgres
+229; 1259 18348 TABLE public log_table postgres
+224; 1259 18322 TABLE public orders postgres
+221; 1259 18311 TABLE public products postgres
+227; 1259 18342 TABLE public sales_data postgres
+233; 1259 18393 TABLE public staging_customers postgres
+239; 1259 18417 TABLE public staging_prices postgres
+234; 1259 18396 TABLE public target_customers postgres
+231; 1259 18357 TABLE public temp_data postgres
+3315; 0 0 TABLE ATTACH public large_table_2023 postgres
+3316; 0 0 TABLE ATTACH public large_table_2024 postgres
+3502; 0 18334 TABLE DATA public customer_feedback postgres
+3498; 0 18316 TABLE DATA public customers postgres
+3494; 0 18298 TABLE DATA public departments postgres
+3496; 0 18305 TABLE DATA public employees postgres
+3508; 0 18365 TABLE DATA public employees_copy postgres
+3512; 0 18406 TABLE DATA public large_table_2023 postgres
+3513; 0 18410 TABLE DATA public large_table_2024 postgres
+3505; 0 18348 TABLE DATA public log_table postgres
+3500; 0 18322 TABLE DATA public orders postgres
+3497; 0 18311 TABLE DATA public products postgres
+3503; 0 18342 TABLE DATA public sales_data postgres
+3509; 0 18393 TABLE DATA public staging_customers postgres
+3514; 0 18417 TABLE DATA public staging_prices postgres
+3510; 0 18396 TABLE DATA public target_customers postgres
+3507; 0 18357 TABLE DATA public temp_data postgres
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== pg_restore: restoring backups =====
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Restore to a new database (create database first)
+C:\Program Files\PostgreSQL\18\bin>createdb -h localhost -U postgres lab17_restore
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>pg_restore -h localhost -U postgres -d lab17_restore C:\Users\Public\backup.dump
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Restore specific tables only
+C:\Program Files\PostgreSQL\18\bin>createdb -h localhost -U postgres lab17_tables
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>pg_restore -h localhost -U postgres -d lab17_tables -t employees C:\Users\Public\backup.dump
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Restore with 4 parallel jobs
+C:\Program Files\PostgreSQL\18\bin>createdb -h localhost -U postgres lab17_parallel
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>pg_restore -h localhost -U postgres -d lab17_parallel -j 4 C:\Users\Public\backup.dump
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Advanced pg_dump options =====
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Schema-only backup: CREATE TABLE commands, no data
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -s > C:\Users\Public\schema_only.sql
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>findstr /C:"COPY public" C:\Users\Public\schema_only.sql
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Data-only backup: COPY commands, no CREATE TABLE
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -a > C:\Users\Public\data_only.sql
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>findstr /C:"CREATE TABLE" C:\Users\Public\data_only.sql
+
+C:\Program Files\PostgreSQL\18\bin>findstr /C:"COPY public" C:\Users\Public\data_only.sql
+COPY public.customer_feedback (id, comment) FROM stdin;
+COPY public.customers (customer_id, name, city) FROM stdin;
+COPY public.departments (dept_id, dept_name) FROM stdin;
+COPY public.employees (employee_id, first_name, last_name, email, department) FROM stdin;
+COPY public.employees_copy (employee_id, first_name, last_name, email, department) FROM stdin;
+COPY public.large_table_2023 (id, sale_date, amount) FROM stdin;
+COPY public.large_table_2024 (id, sale_date, amount) FROM stdin;
+COPY public.log_table (id, message) FROM stdin;
+COPY public.orders (order_id, customer_id, order_date, total) FROM stdin;
+COPY public.products (product_id, name, price) FROM stdin;
+COPY public.sales_data (id, region, amount) FROM stdin;
+COPY public.staging_customers (customer_id, name, city) FROM stdin;
+COPY public.staging_prices (product_id, name, price) FROM stdin;
+COPY public.target_customers (customer_id, name, city) FROM stdin;
+COPY public.temp_data (id, value) FROM stdin;
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Exclude specific tables
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -T log_table -T temp_data > C:\Users\Public\backup_without_logs.sql
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>findstr /C:"log_table" /C:"temp_data" C:\Users\Public\backup_without_logs.sql
+-- Name: log_table_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+CREATE SEQUENCE public.log_table_id_seq
+ALTER SEQUENCE public.log_table_id_seq OWNER TO postgres;
+-- Name: temp_data_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+CREATE SEQUENCE public.temp_data_id_seq
+ALTER SEQUENCE public.temp_data_id_seq OWNER TO postgres;
+-- Name: log_table_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+SELECT pg_catalog.setval('public.log_table_id_seq', 2, true);
+-- Name: temp_data_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+SELECT pg_catalog.setval('public.temp_data_id_seq', 2, true);
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Full backups =====
+C:\Program Files\PostgreSQL\18\bin>rem From lab. All databases on the server (asks the password for every database)
+C:\Program Files\PostgreSQL\18\bin>pg_dumpall -h localhost -U postgres > C:\Users\Public\full_cluster_backup.sql
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>findstr /C:"CREATE DATABASE lab17" C:\Users\Public\full_cluster_backup.sql
+CREATE DATABASE lab17 WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'Russian_Kyrgyzstan.1251';
+CREATE DATABASE lab17_parallel WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'Russian_Kyrgyzstan.1251';
+CREATE DATABASE lab17_restore WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'Russian_Kyrgyzstan.1251';
+CREATE DATABASE lab17_tables WITH TEMPLATE = template0 ENCODING = 'UTF8' LOCALE_PROVIDER = libc LOCALE = 'Russian_Kyrgyzstan.1251';
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Full backup of one database, custom format, verbose (output not repeated here)
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -Fc --verbose > C:\Users\Public\full_lab17_backup.dump 2> C:\Users\Public\full_backup_log.txt
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem Note: -O means --no-owner, it does NOT preserve ownership (the lab text says the opposite)
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -Fc -O > C:\Users\Public\backup_no_owner.dump
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Verify that the backup can be restored into a test database
+C:\Program Files\PostgreSQL\18\bin>createdb -h localhost -U postgres test_restore
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>pg_restore -h localhost -U postgres -d test_restore C:\Users\Public\full_lab17_backup.dump
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Base backup (pg_basebackup) =====
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Base backup in tar format, compressed, with progress
+C:\Program Files\PostgreSQL\18\bin>pg_basebackup -h localhost -U postgres -D C:\Users\Public\base -Ft -z -P
+Password:
+111419/111419 kB (100%), 1/1 tablespace
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Base backup with WAL files included
+C:\Program Files\PostgreSQL\18\bin>rem EXPECTED ERROR: option -x was removed in PostgreSQL 10
+C:\Program Files\PostgreSQL\18\bin>pg_basebackup -h localhost -U postgres -D C:\Users\Public\base2 -x -P
+pg_basebackup: invalid option -- 'x'
+pg_basebackup: hint: Try "pg_basebackup --help" for more information.
+
+C:\Program Files\PostgreSQL\18\bin>rem My fix: -X stream includes WAL files
+C:\Program Files\PostgreSQL\18\bin>pg_basebackup -h localhost -U postgres -D C:\Users\Public\base2 -X stream -P
+Password:
+111418/111418 kB (100%), 1/1 tablespace
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Migration: test on a small table, then a partition =====
+C:\Program Files\PostgreSQL\18\bin>createdb -h localhost -U postgres lab17_target
+Password:
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. pg_dump of one table piped straight into psql of the target database
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -t customers | psql -h localhost -U postgres -d lab17_target
+Password:
+Password:
+SET
+SET
+SET
+SET
+SET
+ set_config
+------------
+
+(1 row)
+
+SET
+SET
+SET
+SET
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+COPY 4
+ALTER TABLE
+
+C:\Program Files\PostgreSQL\18\bin>rem From lab. Migrate one partition
+C:\Program Files\PostgreSQL\18\bin>rem EXPECTED ERRORS: the partition needs its parent table and sequence, they are not in the dump
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -t large_table_2023 | psql -h localhost -U postgres -d lab17_target
+Password:
+Password:
+SET
+SET
+SET
+SET
+SET
+ set_config
+------------
+
+(1 row)
+
+SET
+SET
+SET
+SET
+SET
+SET
+ОШИБКА:  отношение "public.large_table_id_seq" не существует
+LINE 2:     id integer DEFAULT nextval('public.large_table_id_seq'::...
+                                       ^
+ОШИБКА:  отношение "public.large_table_2023" не существует
+ОШИБКА:  отношение "public.large_table" не существует
+ОШИБКА:  отношение "public.large_table_2023" не существует
+
+C:\Program Files\PostgreSQL\18\bin>rem My fix: dump the parent table, its sequence and the partition together
+C:\Program Files\PostgreSQL\18\bin>pg_dump -h localhost -U postgres -d lab17 -t large_table -t large_table_id_seq -t large_table_2023 | psql -h localhost -U postgres -d lab17_target
+Password:
+Password:
+SET
+SET
+SET
+SET
+SET
+ set_config
+------------
+
+(1 row)
+
+SET
+SET
+SET
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+CREATE SEQUENCE
+ALTER SEQUENCE
+ALTER SEQUENCE
+SET
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+COPY 1094
+ setval
+--------
+   2001
+(1 row)
+
+C:\Program Files\PostgreSQL\18\bin>
+
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# -- ===== Checking the restored databases =====
+postgres=# -- Databases created by the backup/restore commands
+postgres=# SELECT datname FROM pg_database
+postgres-# WHERE datname LIKE 'lab17%' OR datname = 'test_restore'
+postgres-# ORDER BY datname;
+    datname
+----------------
+ lab17
+ lab17_parallel
+ lab17_restore
+ lab17_tables
+ lab17_target
+ test_restore
+(6 rows)
+
+
+postgres=#
+postgres=# -- Full restore: same row counts as in lab17
+postgres=# \c lab17_restore
+You are now connected to database "lab17_restore" as user "postgres".
+lab17_restore=# \dt
+                      List of tables
+ Schema |       Name        |       Type        |  Owner
+--------+-------------------+-------------------+----------
+ public | customer_feedback | table             | postgres
+ public | customers         | table             | postgres
+ public | departments       | table             | postgres
+ public | employees         | table             | postgres
+ public | employees_copy    | table             | postgres
+ public | large_table       | partitioned table | postgres
+ public | large_table_2023  | table             | postgres
+ public | large_table_2024  | table             | postgres
+ public | log_table         | table             | postgres
+ public | orders            | table             | postgres
+ public | products          | table             | postgres
+ public | sales_data        | table             | postgres
+ public | staging_customers | table             | postgres
+ public | staging_prices    | table             | postgres
+ public | target_customers  | table             | postgres
+ public | temp_data         | table             | postgres
+(16 rows)
+
+
+lab17_restore=# SELECT (SELECT COUNT(*) FROM employees) AS employees,
+lab17_restore-#        (SELECT COUNT(*) FROM products)  AS products,
+lab17_restore-#        (SELECT COUNT(*) FROM orders)    AS orders,
+lab17_restore-#        (SELECT COUNT(*) FROM large_table) AS large_table;
+ employees | products | orders | large_table
+-----------+----------+--------+-------------
+         7 |        7 |      5 |        2000
+(1 row)
+
+
+lab17_restore=# SELECT * FROM products ORDER BY product_id;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   95.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+          4 | Power Bank        | 1800.00
+          6 | Umbrella          |  400.00
+          7 | Green Tea         |  150.00
+          9 | Milk 1L           |   85.00
+(7 rows)
+
+
+lab17_restore=#
+lab17_restore=# -- Restore of one table only (-t employees)
+lab17_restore=# \c lab17_tables
+You are now connected to database "lab17_tables" as user "postgres".
+lab17_tables=# \dt
+            List of tables
+ Schema |   Name    | Type  |  Owner
+--------+-----------+-------+----------
+ public | employees | table | postgres
+(1 row)
+
+
+lab17_tables=# SELECT * FROM employees;
+ employee_id | first_name |  last_name  |      email      | department
+-------------+------------+-------------+-----------------+------------
+           1 | Alina      | Kim         | alina@shop.kg   | IT
+           2 | Timur      | Bekov       | timur@shop.kg   | IT
+           3 | Bermet     | Asanova     | bermet@shop.kg  | Sales
+           4 | Aibek      | Toktomushev |                 | Sales
+           5 | Zarina     | Ismailova   | zarina@shop.kg  | HR
+           6 | Kanat      | Usupov      | kanat@shop.kg   |
+           7 | Gulnara    | Abdieva     | gulnara@shop.kg |
+(7 rows)
+
+
+lab17_tables=#
+lab17_tables=# -- Parallel restore (-j 4)
+lab17_tables=# \c lab17_parallel
+You are now connected to database "lab17_parallel" as user "postgres".
+lab17_parallel=# SELECT COUNT(*) AS tables FROM information_schema.tables WHERE table_schema = 'public';
+ tables
+--------
+     16
+(1 row)
+
+
+lab17_parallel=#
+lab17_parallel=# -- Backup validation database
+lab17_parallel=# \c test_restore
+You are now connected to database "test_restore" as user "postgres".
+test_restore=# SELECT COUNT(*) AS customers FROM customers;
+ customers
+-----------
+         4
+(1 row)
+
+
+test_restore=#
+test_restore=# -- Migration target: customers + parent table + 2023 partition only
+test_restore=# \c lab17_target
+You are now connected to database "lab17_target" as user "postgres".
+lab17_target=# \dt
+                     List of tables
+ Schema |       Name       |       Type        |  Owner
+--------+------------------+-------------------+----------
+ public | customers        | table             | postgres
+ public | large_table      | partitioned table | postgres
+ public | large_table_2023 | table             | postgres
+(3 rows)
+
+
+lab17_target=# SELECT * FROM customers;
+ customer_id |     name      |   city
+-------------+---------------+----------
+           1 | Aizada Bekova | Bishkek
+           2 | Timur Asanov  | Almaty
+           3 | Dana Kim      | Bishkek
+           4 | Erlan Sadykov | Tashkent
+(4 rows)
+
+
+lab17_target=# SELECT tableoid::regclass AS partition, COUNT(*) FROM large_table GROUP BY 1;
+    partition     | count
+------------------+-------
+ large_table_2023 |  1094
+(1 row)
+
+
+lab17_target=#
+lab17_target=# -- From lab. Post-migration validation: compare with the source (1094 rows for 2023)
+lab17_target=# \c lab17
+You are now connected to database "lab17" as user "postgres".
+lab17=# SELECT COUNT(*) AS source_rows_2023 FROM large_table_2023;
+ source_rows_2023
+------------------
+             1094
+(1 row)
+
+
+lab17=#
+lab17=# -- From lab. Monitor migration progress (0 rows: no pg_dump is running right now)
+lab17=# SELECT pid, usename, application_name, client_addr, state
+lab17-# FROM pg_stat_activity
+lab17-# WHERE application_name = 'pg_dump';
+ pid | usename | application_name | client_addr | state
+-----+---------+------------------+-------------+-------
+(0 rows)
+
+
+lab17=#
+lab17=# -- The same view shows my own psql session
+lab17=# SELECT pid, usename, application_name, state
+lab17-# FROM pg_stat_activity
+lab17-# WHERE pid = pg_backend_pid();
+ pid  | usename  | application_name | state
+------+----------+------------------+--------
+ 1654 | postgres | psql             | active
+(1 row)
+
+
+lab17=#
+lab17=# -- Point-in-Time Recovery was NOT performed: it needs archive_mode = on in
+lab17=# -- postgresql.conf, a server restart, and deleting the data directory.
+lab17=# -- What is ready for it: the base backups in C:/Users/Public/base and base2,
+lab17=# -- and the named restore point 'before_data_migration' created earlier.
+lab17=# SHOW data_directory;
+            data_directory
+-------------------------------------
+ C:/Program Files/PostgreSQL/18/data
+(1 row)
+
+
+lab17=#
+lab17=# \q
+Для продолжения нажмите любую клавишу . . .
+
+C:\>cd "C:\Program Files\PostgreSQL\18\bin"
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== EXTRA PART: PITR, logical and physical replication =====
+
+C:\Program Files\PostgreSQL\18\bin>rem The main server is not touched: recovery and the standby run as separate copies on ports 5433 and 5434
+
+C:\Program Files\PostgreSQL\18\bin>rem Folder for archived WAL files
+
+C:\Program Files\PostgreSQL\18\bin>mkdir C:\Users\Public\wal
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- Current settings
+lab17=# SHOW wal_level;
+ wal_level
+-----------
+ replica
+(1 row)
+
+
+lab17=# SHOW archive_mode;
+ archive_mode
+--------------
+ off
+(1 row)
+
+
+lab17=# -- Turn on WAL archiving (for PITR) and logical WAL (for logical replication)
+lab17=# ALTER SYSTEM SET wal_level = 'logical';
+ALTER SYSTEM
+lab17=# ALTER SYSTEM SET archive_mode = 'on';
+ALTER SYSTEM
+lab17=# ALTER SYSTEM SET archive_command = 'copy "%p" "C:\\Users\\Public\\wal\\%f"';
+ALTER SYSTEM
+lab17=# SELECT pg_reload_conf();
+ pg_reload_conf
+----------------
+ t
+(1 row)
+
+
+lab17=# -- pending_restart = t: these settings work only after a server restart
+lab17=# SELECT name, setting, pending_restart FROM pg_settings WHERE name IN ('wal_level', 'archive_mode', 'archive_command');
+      name       |  setting   | pending_restart
+-----------------+------------+-----------------
+ archive_command | (disabled) | f
+ archive_mode    | off        | t
+ wal_level       | replica    | t
+(3 rows)
+
+
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>rem Restart the PostgreSQL service (Command Prompt opened as Administrator)
+
+C:\Program Files\PostgreSQL\18\bin>net stop postgresql-x64-18
+Служба "postgresql-x64-18 - PostgreSQL Server 18" останавливается.
+Служба "postgresql-x64-18 - PostgreSQL Server 18" успешно остановлена.
+
+C:\Program Files\PostgreSQL\18\bin>net start postgresql-x64-18
+Служба "postgresql-x64-18 - PostgreSQL Server 18" запускается.
+Служба "postgresql-x64-18 - PostgreSQL Server 18" успешно запущена.
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# SHOW wal_level;
+ wal_level
+-----------
+ logical
+(1 row)
+
+
+lab17=# SHOW archive_mode;
+ archive_mode
+--------------
+ on
+(1 row)
+
+
+lab17=# SHOW archive_command;
+            archive_command
+----------------------------------------
+ copy "%p" "C:\\Users\\Public\\wal\\%f"
+(1 row)
+
+
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Point-in-Time Recovery =====
+
+C:\Program Files\PostgreSQL\18\bin>rem Step 1. Base backup (plain format, with WAL), made AFTER archiving was turned on
+
+C:\Program Files\PostgreSQL\18\bin>pg_basebackup -h localhost -U postgres -D C:\Users\Public\pitr_base -X stream -P
+Password:
+119238/119238 kB (100%), 1/1 tablespace
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- Step 2. Important data, then a named restore point
+lab17=# CREATE TABLE pitr_demo (id SERIAL PRIMARY KEY, note TEXT);
+CREATE TABLE
+lab17=# INSERT INTO pitr_demo (note) VALUES ('sale #1'), ('sale #2'), ('sale #3');
+INSERT 0 3
+lab17=# SELECT * FROM pitr_demo;
+ id |  note
+----+---------
+  1 | sale #1
+  2 | sale #2
+  3 | sale #3
+(3 rows)
+
+
+lab17=# SELECT pg_create_restore_point('before_bad_delete') IS NOT NULL AS restore_point_created;
+ restore_point_created
+-----------------------
+ t
+(1 row)
+
+
+lab17=# -- Step 3. The accident: all rows deleted by mistake
+lab17=# DELETE FROM pitr_demo;
+DELETE 3
+lab17=# SELECT * FROM pitr_demo;
+ id | note
+----+------
+(0 rows)
+
+
+lab17=# -- Send the current WAL file to the archive
+lab17=# SELECT pg_switch_wal() IS NOT NULL AS wal_switched;
+ wal_switched
+--------------
+ t
+(1 row)
+
+
+lab17=# SELECT pg_sleep(2);
+ pg_sleep
+----------
+
+
+(1 row)
+
+
+lab17=# SELECT archived_count, failed_count FROM pg_stat_archiver;
+ archived_count | failed_count
+----------------+--------------
+              4 |            0
+(1 row)
+
+
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>rem Step 4. Recovery settings in the copy: read WAL from the archive and stop at the restore point
+
+C:\Program Files\PostgreSQL\18\bin>type nul > C:\Users\Public\pitr_base\recovery.signal
+
+C:\Program Files\PostgreSQL\18\bin>echo restore_command = 'copy "C:\\Users\\Public\\wal\\%f" "%p"' >> C:\Users\Public\pitr_base\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>echo recovery_target_name = 'before_bad_delete' >> C:\Users\Public\pitr_base\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>echo recovery_target_action = 'promote' >> C:\Users\Public\pitr_base\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>echo archive_mode = 'off' >> C:\Users\Public\pitr_base\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>echo port = 5433 >> C:\Users\Public\pitr_base\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>rem Step 5. Start the copy: it replays WAL up to before_bad_delete
+
+C:\Program Files\PostgreSQL\18\bin>pg_ctl -D C:\Users\Public\pitr_base -l C:\Users\Public\pitr.log start
+waiting for server to start.... done
+server started
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -p 5433 -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- The recovered copy: the deleted rows are back
+lab17=# SELECT * FROM pitr_demo;
+ id |  note
+----+---------
+  1 | sale #1
+  2 | sale #2
+  3 | sale #3
+(3 rows)
+
+
+lab17=# SELECT pg_is_in_recovery();
+ pg_is_in_recovery
+-------------------
+ f
+(1 row)
+
+
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- The main server still has the table empty (the copy is separate)
+lab17=# SELECT COUNT(*) FROM pitr_demo;
+ count
+-------
+     0
+(1 row)
+
+
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>pg_ctl -D C:\Users\Public\pitr_base stop
+waiting for server to shut down.... done
+server stopped
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Logical replication (wal_level is now logical) =====
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- Source: publication for the products table
+lab17=# CREATE PUBLICATION migration_pub FOR TABLE products;
+CREATE PUBLICATION
+lab17=# -- Source and target are on the same server, so the slot is created first by hand
+lab17=# SELECT slot_name FROM pg_create_logical_replication_slot('migration_sub', 'pgoutput');
+   slot_name
+---------------
+ migration_sub
+(1 row)
+
+
+lab17=# CREATE DATABASE lab17_replica;
+CREATE DATABASE
+lab17=# \c lab17_replica
+You are now connected to database "lab17_replica" as user "postgres".
+lab17_replica=# CREATE TABLE products (product_id INTEGER PRIMARY KEY, name VARCHAR(100), price DECIMAL(10,2));
+CREATE TABLE
+lab17_replica=# -- Target: subscription (from the lab, plus create_slot = false)
+lab17_replica=# CREATE SUBSCRIPTION migration_sub
+lab17_replica-# CONNECTION 'host=localhost port=5432 dbname=lab17 user=postgres password=*****'
+lab17_replica-# PUBLICATION migration_pub
+lab17_replica-# WITH (create_slot = false);
+CREATE SUBSCRIPTION
+lab17_replica=# SELECT pg_sleep(3);
+ pg_sleep
+----------
+
+
+(1 row)
+
+
+lab17_replica=# -- Existing rows were copied
+lab17_replica=# SELECT * FROM products ORDER BY product_id;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   95.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+          4 | Power Bank        | 1800.00
+          6 | Umbrella          |  400.00
+          7 | Green Tea         |  150.00
+          9 | Milk 1L           |   85.00
+(7 rows)
+
+
+lab17_replica=# -- A new row on the source...
+lab17_replica=# \c lab17
+You are now connected to database "lab17" as user "postgres".
+lab17=# INSERT INTO products VALUES (10, 'Honey 1kg', 650.00);
+INSERT 0 1
+lab17=# UPDATE products SET price = 99.00 WHERE product_id = 1;
+UPDATE 1
+lab17=# \c lab17_replica
+You are now connected to database "lab17_replica" as user "postgres".
+lab17_replica=# SELECT pg_sleep(2);
+ pg_sleep
+----------
+
+
+(1 row)
+
+
+lab17_replica=# -- ...appears on the target automatically
+lab17_replica=# SELECT * FROM products ORDER BY product_id;
+ product_id |       name        |  price
+------------+-------------------+---------
+          1 | Big Panda Noodles |   99.00
+          2 | Rice 5kg          |  560.00
+          3 | Headphones        | 1250.00
+          4 | Power Bank        | 1800.00
+          6 | Umbrella          |  400.00
+          7 | Green Tea         |  150.00
+          9 | Milk 1L           |   85.00
+         10 | Honey 1kg         |  650.00
+(8 rows)
+
+
+lab17_replica=# SELECT subname, subenabled FROM pg_subscription;
+    subname    | subenabled
+---------------+------------
+ migration_sub | t
+(1 row)
+
+
+lab17_replica=# -- Clean up
+lab17_replica=# DROP SUBSCRIPTION migration_sub;
+ЗАМЕЧАНИЕ:  слот репликации "migration_sub" удалён на сервере публикации
+DROP SUBSCRIPTION
+lab17_replica=# \c lab17
+You are now connected to database "lab17" as user "postgres".
+lab17=# DROP PUBLICATION migration_pub;
+DROP PUBLICATION
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Physical (streaming) replication =====
+
+C:\Program Files\PostgreSQL\18\bin>rem -R writes the connection settings for the standby and creates standby.signal
+
+C:\Program Files\PostgreSQL\18\bin>pg_basebackup -h localhost -U postgres -D C:\Users\Public\standby -R -X stream -P
+Password:
+126969/126969 kB (100%), 1/1 tablespace
+
+C:\Program Files\PostgreSQL\18\bin>echo port = 5434 >> C:\Users\Public\standby\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>echo archive_mode = 'off' >> C:\Users\Public\standby\postgresql.auto.conf
+
+C:\Program Files\PostgreSQL\18\bin>pg_ctl -D C:\Users\Public\standby -l C:\Users\Public\standby.log start
+waiting for server to start.... done
+server started
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- Primary: one standby is connected and streaming
+lab17=# SELECT application_name, state, sync_state FROM pg_stat_replication;
+ application_name |   state   | sync_state
+------------------+-----------+------------
+ walreceiver      | streaming | async
+(1 row)
+
+
+lab17=# INSERT INTO products VALUES (11, 'Apple juice 1L', 120.00);
+INSERT 0 1
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -p 5434 -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# -- Standby: it is in recovery mode and already has the new row
+lab17=# SELECT pg_is_in_recovery();
+ pg_is_in_recovery
+-------------------
+ t
+(1 row)
+
+
+lab17=# SELECT * FROM products WHERE product_id = 11;
+ product_id |      name      | price
+------------+----------------+--------
+         11 | Apple juice 1L | 120.00
+(1 row)
+
+
+lab17=# -- EXPECTED ERROR: a standby is read-only
+lab17=# INSERT INTO products VALUES (12, 'Water', 40.00);
+ОШИБКА:  в транзакции в режиме "только чтение" нельзя выполнить INSERT
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>pg_ctl -D C:\Users\Public\standby stop
+waiting for server to shut down.... done
+server stopped
+
+C:\Program Files\PostgreSQL\18\bin>rem ===== Return the main server to the default settings =====
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots;
+ pg_drop_replication_slot
+--------------------------
+(0 rows)
+
+
+lab17=# ALTER SYSTEM RESET wal_level;
+ALTER SYSTEM
+lab17=# ALTER SYSTEM RESET archive_mode;
+ALTER SYSTEM
+lab17=# ALTER SYSTEM RESET archive_command;
+ALTER SYSTEM
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>net stop postgresql-x64-18
+Служба "postgresql-x64-18 - PostgreSQL Server 18" останавливается.
+Служба "postgresql-x64-18 - PostgreSQL Server 18" успешно остановлена.
+
+C:\Program Files\PostgreSQL\18\bin>net start postgresql-x64-18
+Служба "postgresql-x64-18 - PostgreSQL Server 18" запускается.
+Служба "postgresql-x64-18 - PostgreSQL Server 18" успешно запущена.
+
+C:\Program Files\PostgreSQL\18\bin>psql -U postgres -d lab17
+Password for user postgres:
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+lab17=# SHOW wal_level;
+ wal_level
+-----------
+ replica
+(1 row)
+
+
+lab17=# SHOW archive_mode;
+ archive_mode
+--------------
+ off
+(1 row)
+
+
+lab17=# \q
+
+C:\Program Files\PostgreSQL\18\bin>
