@@ -1,0 +1,761 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# CREATE DATABASE lab15;
+CREATE DATABASE
+postgres=# \c lab15
+You are now connected to database "lab15" as user "postgres".
+lab15=#
+lab15=# -- Sample tables for the lab
+lab15=# DROP TABLE IF EXISTS employees, orders, warehouse_1, warehouse_2, sales, pivoted_sales, store_sales CASCADE;
+ЗАМЕЧАНИЕ:  таблица "employees" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "orders" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "warehouse_1" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "warehouse_2" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "sales" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "pivoted_sales" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "store_sales" не существует, пропускается
+DROP TABLE
+lab15=#
+lab15=# CREATE TABLE employees (
+lab15(#     employee_id SERIAL PRIMARY KEY,
+lab15(#     first_name  VARCHAR(50),
+lab15(#     last_name   VARCHAR(50),
+lab15(#     department  VARCHAR(50),
+lab15(#     salary      DECIMAL(10,2),
+lab15(#     tenure      INTEGER,                                   -- years in company
+lab15(#     manager_id  INTEGER REFERENCES employees(employee_id)
+lab15(# );
+CREATE TABLE
+lab15=# INSERT INTO employees (first_name, last_name, department, salary, tenure, manager_id) VALUES
+lab15-#     ('Nurlan',  'Osmonov',     'Management',  150000, 12, NULL),   -- CEO
+lab15-#     ('Alina',   'Kim',         'Engineering', 120000,  9, 1),
+lab15-#     ('Bermet',  'Asanova',     'Sales',        90000,  7, 1),
+lab15-#     ('Timur',   'Bekov',       'Engineering',  85000,  4, 2),
+lab15-#     ('Dana',    'Usenova',     'Engineering',  85000,  6, 2),
+lab15-#     ('Aibek',   'Toktomushev', 'Sales',        55000,  3, 3),
+lab15-#     ('Gulnara', 'Abdieva',     'Sales',        48000,  1, 3),
+lab15-#     ('Kanat',   'Usupov',      'Sales',        61000,  8, 6);
+INSERT 0 8
+lab15=# SELECT * FROM employees;
+ employee_id | first_name |  last_name  | department  |  salary   | tenure | manager_id
+-------------+------------+-------------+-------------+-----------+--------+------------
+           1 | Nurlan     | Osmonov     | Management  | 150000.00 |     12 |
+           2 | Alina      | Kim         | Engineering | 120000.00 |      9 |          1
+           3 | Bermet     | Asanova     | Sales       |  90000.00 |      7 |          1
+           4 | Timur      | Bekov       | Engineering |  85000.00 |      4 |          2
+           5 | Dana       | Usenova     | Engineering |  85000.00 |      6 |          2
+           6 | Aibek      | Toktomushev | Sales       |  55000.00 |      3 |          3
+           7 | Gulnara    | Abdieva     | Sales       |  48000.00 |      1 |          3
+           8 | Kanat      | Usupov      | Sales       |  61000.00 |      8 |          6
+(8 rows)
+
+
+lab15=#
+lab15=# CREATE TABLE orders (
+lab15(#     order_id     SERIAL PRIMARY KEY,
+lab15(#     region_id    INTEGER,
+lab15(#     product_name VARCHAR(100),
+lab15(#     amount       DECIMAL(12,2),
+lab15(#     status       VARCHAR(20)
+lab15(# );
+CREATE TABLE
+lab15=# INSERT INTO orders (region_id, product_name, amount, status) VALUES
+lab15-#     (1, 'Headphones',        650000, 'Medium Priority'),
+lab15-#     (1, 'Power Bank',        480000, 'High Priority'),
+lab15-#     (2, 'Rice 5kg',          300000, 'Low Priority'),
+lab15-#     (2, 'Big Panda Noodles', 250000, 'High Priority'),
+lab15-#     (3, 'Headphones',        900000, 'Low Priority'),
+lab15-#     (3, 'T-shirt',           350000, 'Medium Priority'),
+lab15-#     (3, 'Umbrella',           40000, 'Unknown');
+INSERT 0 7
+lab15=# SELECT * FROM orders;
+ order_id | region_id |   product_name    |  amount   |     status
+----------+-----------+-------------------+-----------+-----------------
+        1 |         1 | Headphones        | 650000.00 | Medium Priority
+        2 |         1 | Power Bank        | 480000.00 | High Priority
+        3 |         2 | Rice 5kg          | 300000.00 | Low Priority
+        4 |         2 | Big Panda Noodles | 250000.00 | High Priority
+        5 |         3 | Headphones        | 900000.00 | Low Priority
+        6 |         3 | T-shirt           | 350000.00 | Medium Priority
+        7 |         3 | Umbrella          |  40000.00 | Unknown
+(7 rows)
+
+
+lab15=#
+lab15=# -- ===== 1. Subqueries =====
+lab15=# -- From lab. Scalar subquery: salary above company average
+lab15=# SELECT first_name, last_name, salary
+lab15-# FROM employees
+lab15-# WHERE salary > (
+lab15(#     SELECT AVG(salary)          -- this scalar subquery returns a single value
+lab15(#     FROM employees
+lab15(# );
+ first_name | last_name |  salary
+------------+-----------+-----------
+ Nurlan     | Osmonov   | 150000.00
+ Alina      | Kim       | 120000.00
+ Bermet     | Asanova   |  90000.00
+(3 rows)
+
+
+lab15=#
+lab15=# -- The value the subquery returned
+lab15=# SELECT AVG(salary) FROM employees;
+        avg
+--------------------
+ 86750.000000000000
+(1 row)
+
+
+lab15=#
+lab15=# -- Row subquery: one row with two columns, compared with (department, salary)
+lab15=# -- the highest paid person in Sales
+lab15=# SELECT first_name, last_name, department, salary
+lab15-# FROM employees
+lab15-# WHERE (department, salary) = (
+lab15(#     SELECT department, MAX(salary)
+lab15(#     FROM employees
+lab15(#     WHERE department = 'Sales'
+lab15(#     GROUP BY department
+lab15(# );
+ first_name | last_name | department |  salary
+------------+-----------+------------+----------
+ Bermet     | Asanova   | Sales      | 90000.00
+(1 row)
+
+
+lab15=#
+lab15=# -- Table subquery in FROM: average salary per department, then filter
+lab15=# SELECT dept_stats.department, dept_stats.avg_salary
+lab15-# FROM (
+lab15(#     SELECT department, AVG(salary) AS avg_salary
+lab15(#     FROM employees
+lab15(#     GROUP BY department
+lab15(# ) AS dept_stats
+lab15-# WHERE dept_stats.avg_salary > 70000;
+ department  |     avg_salary
+-------------+---------------------
+ Engineering |  96666.666666666667
+ Management  | 150000.000000000000
+(2 rows)
+
+
+lab15=#
+lab15=# -- Table subquery with IN: employees who manage somebody
+lab15=# SELECT first_name, last_name
+lab15-# FROM employees
+lab15-# WHERE employee_id IN (SELECT manager_id FROM employees WHERE manager_id IS NOT NULL);
+ first_name |  last_name
+------------+-------------
+ Nurlan     | Osmonov
+ Alina      | Kim
+ Bermet     | Asanova
+ Aibek      | Toktomushev
+(4 rows)
+
+
+lab15=#
+lab15=# -- EXPECTED ERROR: a scalar subquery must return only one row
+lab15=# SELECT first_name, salary
+lab15-# FROM employees
+lab15-# WHERE salary = (SELECT salary FROM employees WHERE department = 'Engineering');
+ОШИБКА:  более одной строки возвращено подзапросом, использованным в качестве выражения
+lab15=#
+lab15=# -- ===== 2. Common Table Expressions =====
+lab15=# -- From lab. Regions with sales over 1,000,000
+lab15=# WITH regional_sales AS (
+lab15(#     SELECT region_id, SUM(amount) AS total_sales
+lab15(#     FROM orders
+lab15(#     GROUP BY region_id
+lab15(# )
+lab15-# SELECT region_id, total_sales
+lab15-# FROM regional_sales
+lab15-# WHERE total_sales > 1000000;
+ region_id | total_sales
+-----------+-------------
+         3 |  1290000.00
+         1 |  1130000.00
+(2 rows)
+
+
+lab15=#
+lab15=# -- ===== 3. Recursive queries =====
+lab15=# -- From lab. Organization chart starting from the top manager
+lab15=# WITH RECURSIVE org_chart AS (
+lab15(#     -- Anchor: the top-level manager (no manager)
+lab15(#     SELECT employee_id, first_name, last_name, manager_id
+lab15(#     FROM employees
+lab15(#     WHERE manager_id IS NULL
+lab15(#     UNION ALL
+lab15(#     -- Recursive: everyone who reports to people already in the chart
+lab15(#     SELECT e.employee_id, e.first_name, e.last_name, e.manager_id
+lab15(#     FROM employees e
+lab15(#     INNER JOIN org_chart oc ON e.manager_id = oc.employee_id
+lab15(# )
+lab15-# SELECT * FROM org_chart;
+ employee_id | first_name |  last_name  | manager_id
+-------------+------------+-------------+------------
+           1 | Nurlan     | Osmonov     |
+           2 | Alina      | Kim         |          1
+           3 | Bermet     | Asanova     |          1
+           4 | Timur      | Bekov       |          2
+           5 | Dana       | Usenova     |          2
+           6 | Aibek      | Toktomushev |          3
+           7 | Gulnara    | Abdieva     |          3
+           8 | Kanat      | Usupov      |          6
+(8 rows)
+
+
+lab15=#
+lab15=# -- Same recursion with a level number and the path from the top
+lab15=# WITH RECURSIVE org_chart AS (
+lab15(#     SELECT employee_id, first_name, manager_id,
+lab15(#            1 AS level,
+lab15(#            first_name::TEXT AS path
+lab15(#     FROM employees
+lab15(#     WHERE manager_id IS NULL
+lab15(#     UNION ALL
+lab15(#     SELECT e.employee_id, e.first_name, e.manager_id,
+lab15(#            oc.level + 1,
+lab15(#            oc.path || ' -> ' || e.first_name
+lab15(#     FROM employees e
+lab15(#     INNER JOIN org_chart oc ON e.manager_id = oc.employee_id
+lab15(# )
+lab15-# SELECT level, first_name, path FROM org_chart ORDER BY path;
+ level | first_name |                path
+-------+------------+------------------------------------
+     1 | Nurlan     | Nurlan
+     2 | Alina      | Nurlan -> Alina
+     3 | Dana       | Nurlan -> Alina -> Dana
+     3 | Timur      | Nurlan -> Alina -> Timur
+     2 | Bermet     | Nurlan -> Bermet
+     3 | Aibek      | Nurlan -> Bermet -> Aibek
+     4 | Kanat      | Nurlan -> Bermet -> Aibek -> Kanat
+     3 | Gulnara    | Nurlan -> Bermet -> Gulnara
+(8 rows)
+
+
+lab15=#
+lab15=# -- ===== 4. Set operations =====
+lab15=# CREATE TABLE warehouse_1 (
+lab15(#     product_id   INTEGER PRIMARY KEY,
+lab15(#     product_name VARCHAR(100),
+lab15(#     quantity     INTEGER
+lab15(# );
+CREATE TABLE
+lab15=# CREATE TABLE warehouse_2 (
+lab15(#     product_id   INTEGER PRIMARY KEY,
+lab15(#     product_name VARCHAR(100),
+lab15(#     quantity     INTEGER
+lab15(# );
+CREATE TABLE
+lab15=# INSERT INTO warehouse_1 VALUES
+lab15-#     (1, 'Big Panda Noodles', 120),
+lab15-#     (2, 'Rice 5kg',            0),
+lab15-#     (3, 'Headphones',         15),
+lab15-#     (4, 'Umbrella',            0);
+INSERT 0 4
+lab15=# INSERT INTO warehouse_2 VALUES
+lab15-#     (1, 'Big Panda Noodles',  80),
+lab15-#     (2, 'Rice 5kg',            0),
+lab15-#     (4, 'Umbrella',            7),
+lab15-#     (5, 'T-shirt',            40);
+INSERT 0 4
+lab15=# SELECT * FROM warehouse_1;
+ product_id |   product_name    | quantity
+------------+-------------------+----------
+          1 | Big Panda Noodles |      120
+          2 | Rice 5kg          |        0
+          3 | Headphones        |       15
+          4 | Umbrella          |        0
+(4 rows)
+
+
+lab15=# SELECT * FROM warehouse_2;
+ product_id |   product_name    | quantity
+------------+-------------------+----------
+          1 | Big Panda Noodles |       80
+          2 | Rice 5kg          |        0
+          4 | Umbrella          |        7
+          5 | T-shirt           |       40
+(4 rows)
+
+
+lab15=#
+lab15=# -- From lab. UNION: all unique products from both warehouses
+lab15=# SELECT product_name FROM warehouse_1
+lab15-# UNION
+lab15-# SELECT product_name FROM warehouse_2;
+   product_name
+-------------------
+ Rice 5kg
+ Headphones
+ T-shirt
+ Umbrella
+ Big Panda Noodles
+(5 rows)
+
+
+lab15=#
+lab15=# -- UNION ALL keeps duplicates (8 rows instead of 5)
+lab15=# SELECT product_name FROM warehouse_1
+lab15-# UNION ALL
+lab15-# SELECT product_name FROM warehouse_2;
+   product_name
+-------------------
+ Big Panda Noodles
+ Rice 5kg
+ Headphones
+ Umbrella
+ Big Panda Noodles
+ Rice 5kg
+ Umbrella
+ T-shirt
+(8 rows)
+
+
+lab15=#
+lab15=# -- From lab. INTERSECT: out of stock in both warehouses
+lab15=# SELECT product_id FROM warehouse_1 WHERE quantity = 0
+lab15-# INTERSECT
+lab15-# SELECT product_id FROM warehouse_2 WHERE quantity = 0;
+ product_id
+------------
+          2
+(1 row)
+
+
+lab15=#
+lab15=# -- EXCEPT: products in warehouse 1 that warehouse 2 does not have
+lab15=# SELECT product_name FROM warehouse_1
+lab15-# EXCEPT
+lab15-# SELECT product_name FROM warehouse_2;
+ product_name
+--------------
+ Headphones
+(1 row)
+
+
+lab15=#
+lab15=# -- EXPECTED ERROR: both queries in UNION must have the same number of columns
+lab15=# SELECT product_id, product_name FROM warehouse_1
+lab15-# UNION
+lab15-# SELECT product_name FROM warehouse_2;
+ОШИБКА:  каждый запрос в UNION должен возвращать одинаковое число столбцов
+LINE 3: SELECT product_name FROM warehouse_2;
+               ^
+lab15=#
+lab15=# -- ===== 5. Window functions =====
+lab15=# -- From lab. Salary rank inside each department
+lab15=# SELECT
+lab15-#     first_name,
+lab15-#     last_name,
+lab15-#     department,
+lab15-#     salary,
+lab15-#     RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS dept_salary_rank
+lab15-# FROM employees;
+ first_name |  last_name  | department  |  salary   | dept_salary_rank
+------------+-------------+-------------+-----------+------------------
+ Alina      | Kim         | Engineering | 120000.00 |                1
+ Timur      | Bekov       | Engineering |  85000.00 |                2
+ Dana       | Usenova     | Engineering |  85000.00 |                2
+ Nurlan     | Osmonov     | Management  | 150000.00 |                1
+ Bermet     | Asanova     | Sales       |  90000.00 |                1
+ Kanat      | Usupov      | Sales       |  61000.00 |                2
+ Aibek      | Toktomushev | Sales       |  55000.00 |                3
+ Gulnara    | Abdieva     | Sales       |  48000.00 |                4
+(8 rows)
+
+
+lab15=#
+lab15=# -- ROW_NUMBER vs RANK vs DENSE_RANK (Timur and Dana have equal salary 85000)
+lab15=# SELECT first_name, salary,
+lab15-#        ROW_NUMBER() OVER (ORDER BY salary DESC) AS row_number,
+lab15-#        RANK()       OVER (ORDER BY salary DESC) AS rank,
+lab15-#        DENSE_RANK() OVER (ORDER BY salary DESC) AS dense_rank
+lab15-# FROM employees;
+ first_name |  salary   | row_number | rank | dense_rank
+------------+-----------+------------+------+------------
+ Nurlan     | 150000.00 |          1 |    1 |          1
+ Alina      | 120000.00 |          2 |    2 |          2
+ Bermet     |  90000.00 |          3 |    3 |          3
+ Dana       |  85000.00 |          4 |    4 |          4
+ Timur      |  85000.00 |          5 |    4 |          4
+ Kanat      |  61000.00 |          6 |    6 |          5
+ Aibek      |  55000.00 |          7 |    7 |          6
+ Gulnara    |  48000.00 |          8 |    8 |          7
+(8 rows)
+
+
+lab15=#
+lab15=# -- LAG and LEAD: previous and next salary in the list
+lab15=# SELECT first_name, salary,
+lab15-#        LAG(salary)  OVER (ORDER BY salary DESC) AS previous_salary,
+lab15-#        LEAD(salary) OVER (ORDER BY salary DESC) AS next_salary
+lab15-# FROM employees;
+ first_name |  salary   | previous_salary | next_salary
+------------+-----------+-----------------+-------------
+ Nurlan     | 150000.00 |                 |   120000.00
+ Alina      | 120000.00 |       150000.00 |    90000.00
+ Bermet     |  90000.00 |       120000.00 |    85000.00
+ Dana       |  85000.00 |        90000.00 |    85000.00
+ Timur      |  85000.00 |        85000.00 |    61000.00
+ Kanat      |  61000.00 |        85000.00 |    55000.00
+ Aibek      |  55000.00 |        61000.00 |    48000.00
+ Gulnara    |  48000.00 |        55000.00 |
+(8 rows)
+
+
+lab15=#
+lab15=# -- SUM and AVG as window functions (rows are not collapsed)
+lab15=# SELECT first_name, department, salary,
+lab15-#        SUM(salary) OVER (PARTITION BY department) AS dept_total,
+lab15-#        ROUND(AVG(salary) OVER (PARTITION BY department), 2) AS dept_avg
+lab15-# FROM employees;
+ first_name | department  |  salary   | dept_total | dept_avg
+------------+-------------+-----------+------------+-----------
+ Timur      | Engineering |  85000.00 |  290000.00 |  96666.67
+ Alina      | Engineering | 120000.00 |  290000.00 |  96666.67
+ Dana       | Engineering |  85000.00 |  290000.00 |  96666.67
+ Nurlan     | Management  | 150000.00 |  150000.00 | 150000.00
+ Bermet     | Sales       |  90000.00 |  254000.00 |  63500.00
+ Aibek      | Sales       |  55000.00 |  254000.00 |  63500.00
+ Gulnara    | Sales       |  48000.00 |  254000.00 |  63500.00
+ Kanat      | Sales       |  61000.00 |  254000.00 |  63500.00
+(8 rows)
+
+
+lab15=#
+lab15=# -- ===== 6. Pivot and unpivot =====
+lab15=# CREATE TABLE sales (
+lab15(#     product_name VARCHAR(100),
+lab15(#     year         INTEGER,
+lab15(#     sales_amount DECIMAL(10,2)
+lab15(# );
+CREATE TABLE
+lab15=# INSERT INTO sales VALUES
+lab15-#     ('Big Panda Noodles', 2022, 12000), ('Big Panda Noodles', 2023, 15500), ('Big Panda Noodles', 2024, 19800),
+lab15-#     ('Headphones',        2022, 30000), ('Headphones',        2023, 27000), ('Headphones',        2024, 34000),
+lab15-#     ('Rice 5kg',          2023,  8000), ('Rice 5kg',          2024,  9500);
+INSERT 0 8
+lab15=# SELECT * FROM sales;
+   product_name    | year | sales_amount
+-------------------+------+--------------
+ Big Panda Noodles | 2022 |     12000.00
+ Big Panda Noodles | 2023 |     15500.00
+ Big Panda Noodles | 2024 |     19800.00
+ Headphones        | 2022 |     30000.00
+ Headphones        | 2023 |     27000.00
+ Headphones        | 2024 |     34000.00
+ Rice 5kg          | 2023 |      8000.00
+ Rice 5kg          | 2024 |      9500.00
+(8 rows)
+
+
+lab15=#
+lab15=# -- From lab. Pivot with conditional aggregation: years become columns
+lab15=# SELECT
+lab15-#     product_name,
+lab15-#     SUM(CASE WHEN year = 2022 THEN sales_amount ELSE 0 END) AS year_2022,
+lab15-#     SUM(CASE WHEN year = 2023 THEN sales_amount ELSE 0 END) AS year_2023,
+lab15-#     SUM(CASE WHEN year = 2024 THEN sales_amount ELSE 0 END) AS year_2024
+lab15-# FROM sales
+lab15-# GROUP BY product_name;
+   product_name    | year_2022 | year_2023 | year_2024
+-------------------+-----------+-----------+-----------
+ Rice 5kg          |         0 |   8000.00 |   9500.00
+ Headphones        |  30000.00 |  27000.00 |  34000.00
+ Big Panda Noodles |  12000.00 |  15500.00 |  19800.00
+(3 rows)
+
+
+lab15=#
+lab15=# -- Save the pivoted result as a table, so we can unpivot it
+lab15=# CREATE TABLE pivoted_sales AS
+lab15-# SELECT
+lab15-#     product_name,
+lab15-#     SUM(CASE WHEN year = 2022 THEN sales_amount ELSE 0 END) AS year_2022,
+lab15-#     SUM(CASE WHEN year = 2023 THEN sales_amount ELSE 0 END) AS year_2023,
+lab15-#     SUM(CASE WHEN year = 2024 THEN sales_amount ELSE 0 END) AS year_2024
+lab15-# FROM sales
+lab15-# GROUP BY product_name;
+SELECT 3
+lab15=# SELECT * FROM pivoted_sales;
+   product_name    | year_2022 | year_2023 | year_2024
+-------------------+-----------+-----------+-----------
+ Rice 5kg          |         0 |   8000.00 |   9500.00
+ Headphones        |  30000.00 |  27000.00 |  34000.00
+ Big Panda Noodles |  12000.00 |  15500.00 |  19800.00
+(3 rows)
+
+
+lab15=#
+lab15=# -- From lab. Unpivot with UNION ALL: columns become rows again
+lab15=# SELECT product_name, '2022' AS year, year_2022 AS sales_amount FROM pivoted_sales
+lab15-# UNION ALL
+lab15-# SELECT product_name, '2023' AS year, year_2023 AS sales_amount FROM pivoted_sales
+lab15-# UNION ALL
+lab15-# SELECT product_name, '2024' AS year, year_2024 AS sales_amount FROM pivoted_sales
+lab15-# ORDER BY product_name, year;
+   product_name    | year | sales_amount
+-------------------+------+--------------
+ Big Panda Noodles | 2022 |     12000.00
+ Big Panda Noodles | 2023 |     15500.00
+ Big Panda Noodles | 2024 |     19800.00
+ Headphones        | 2022 |     30000.00
+ Headphones        | 2023 |     27000.00
+ Headphones        | 2024 |     34000.00
+ Rice 5kg          | 2022 |            0
+ Rice 5kg          | 2023 |      8000.00
+ Rice 5kg          | 2024 |      9500.00
+(9 rows)
+
+
+lab15=#
+lab15=# -- Pivot with crosstab() from the tablefunc module
+lab15=# CREATE EXTENSION IF NOT EXISTS tablefunc;
+CREATE EXTENSION
+lab15=# SELECT *
+lab15-# FROM crosstab(
+lab15(#     'SELECT product_name, year, sales_amount FROM sales ORDER BY 1, 2',
+lab15(#     'SELECT DISTINCT year FROM sales ORDER BY 1'
+lab15(# ) AS ct(product_name VARCHAR, year_2022 DECIMAL, year_2023 DECIMAL, year_2024 DECIMAL);
+   product_name    | year_2022 | year_2023 | year_2024
+-------------------+-----------+-----------+-----------
+ Big Panda Noodles |  12000.00 |  15500.00 |  19800.00
+ Headphones        |  30000.00 |  27000.00 |  34000.00
+ Rice 5kg          |           |   8000.00 |   9500.00
+(3 rows)
+
+
+lab15=#
+lab15=# -- ===== 7. Complex filtering and sorting =====
+lab15=# -- From lab. FILTER clause with window functions
+lab15=# SELECT
+lab15-#     employee_id,
+lab15-#     SUM(salary) OVER (PARTITION BY department) AS total_dept_salary,
+lab15-#     AVG(salary) FILTER (WHERE tenure > 5) OVER () AS avg_salary_senior
+lab15-# FROM employees;
+ employee_id | total_dept_salary |  avg_salary_senior
+-------------+-------------------+---------------------
+           4 |         290000.00 | 101200.000000000000
+           2 |         290000.00 | 101200.000000000000
+           5 |         290000.00 | 101200.000000000000
+           1 |         150000.00 | 101200.000000000000
+           3 |         254000.00 | 101200.000000000000
+           6 |         254000.00 | 101200.000000000000
+           7 |         254000.00 | 101200.000000000000
+           8 |         254000.00 | 101200.000000000000
+(8 rows)
+
+
+lab15=#
+lab15=# -- FILTER with a normal aggregate
+lab15=# SELECT department,
+lab15-#        COUNT(*) AS all_employees,
+lab15-#        COUNT(*) FILTER (WHERE tenure > 5) AS senior_employees
+lab15-# FROM employees
+lab15-# GROUP BY department;
+ department  | all_employees | senior_employees
+-------------+---------------+------------------
+ Engineering |             3 |                2
+ Management  |             1 |                1
+ Sales       |             4 |                2
+(3 rows)
+
+
+lab15=#
+lab15=# -- From lab. Custom sorting with CASE
+lab15=# SELECT product_name, status
+lab15-# FROM orders
+lab15-# ORDER BY
+lab15-#     CASE status
+lab15-#         WHEN 'High Priority' THEN 1
+lab15-#         WHEN 'Medium Priority' THEN 2
+lab15-#         WHEN 'Low Priority' THEN 3
+lab15-#         ELSE 4
+lab15-#     END;
+   product_name    |     status
+-------------------+-----------------
+ Big Panda Noodles | High Priority
+ Power Bank        | High Priority
+ Headphones        | Medium Priority
+ T-shirt           | Medium Priority
+ Rice 5kg          | Low Priority
+ Headphones        | Low Priority
+ Umbrella          | Unknown
+(7 rows)
+
+
+lab15=#
+lab15=# -- ===== 8. Query optimization =====
+lab15=# -- A bigger table to see the difference an index makes (100 000 rows)
+lab15=# CREATE TABLE store_sales AS
+lab15-# SELECT g AS sale_id,
+lab15-#        (ARRAY['Bishkek','Almaty','Tashkent'])[1 + g % 3] AS store,
+lab15-#        DATE '2026-01-01' + (g % 300) AS sale_date,
+lab15-#        ROUND((50 + (g * 37) % 5000)::NUMERIC, 2) AS revenue
+lab15-# FROM generate_series(1, 100000) AS g;
+SELECT 100000
+lab15=# SELECT COUNT(*) FROM store_sales;
+ count
+--------
+ 100000
+(1 row)
+
+
+lab15=#
+lab15=# -- EXPLAIN: plan without an index -> Seq Scan (reads the whole table)
+lab15=# EXPLAIN SELECT * FROM store_sales WHERE sale_id = 5000;
+                           QUERY PLAN
+-----------------------------------------------------------------
+ Seq Scan on store_sales  (cost=0.00..1416.80 rows=285 width=72)
+   Filter: (sale_id = 5000)
+(2 rows)
+
+
+lab15=#
+lab15=# -- Create an index on the column used in WHERE
+lab15=# CREATE INDEX idx_store_sales_id ON store_sales(sale_id);
+CREATE INDEX
+lab15=#
+lab15=# -- EXPLAIN: now the plan uses the index (Bitmap Index Scan on idx_store_sales_id)
+lab15=# EXPLAIN SELECT * FROM store_sales WHERE sale_id = 5000;
+                                     QUERY PLAN
+------------------------------------------------------------------------------------
+ Bitmap Heap Scan on store_sales  (cost=12.17..692.97 rows=500 width=72)
+   Recheck Cond: (sale_id = 5000)
+   ->  Bitmap Index Scan on idx_store_sales_id  (cost=0.00..12.04 rows=500 width=0)
+         Index Cond: (sale_id = 5000)
+(4 rows)
+
+
+lab15=#
+lab15=# -- EXPLAIN ANALYZE: executes the query and shows real time
+lab15=# EXPLAIN ANALYZE SELECT store, SUM(revenue) FROM store_sales GROUP BY store;
+                                                       QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=2204.00..2206.50 rows=200 width=64) (actual time=29.936..29.939 rows=3 loops=1)
+   Group Key: store
+   Batches: 1  Memory Usage: 40kB
+   ->  Seq Scan on store_sales  (cost=0.00..1704.00 rows=100000 width=64) (actual time=0.011..7.981 rows=100000 loops=1)
+ Planning Time: 0.067 ms
+ Execution Time: 29.969 ms
+(6 rows)
+
+
+lab15=#
+lab15=# -- Use LIMIT for testing and select only needed columns
+lab15=# SELECT sale_id, store, revenue FROM store_sales ORDER BY sale_id LIMIT 10;
+ sale_id |  store   | revenue
+---------+----------+---------
+       1 | Almaty   |   87.00
+       2 | Tashkent |  124.00
+       3 | Bishkek  |  161.00
+       4 | Almaty   |  198.00
+       5 | Tashkent |  235.00
+       6 | Bishkek  |  272.00
+       7 | Almaty   |  309.00
+       8 | Tashkent |  346.00
+       9 | Bishkek  |  383.00
+      10 | Almaty   |  420.00
+(10 rows)
+
+
+lab15=#
+lab15=# -- ===== MY EXAMPLES (retail) =====
+lab15=# -- My example 1: ABC analysis of products (CTE + window functions + CASE)
+lab15=# -- A = products that bring the first 80% of revenue, B = next 15%, C = the rest
+lab15=# WITH product_revenue AS (
+lab15(#     SELECT product_name, SUM(amount) AS revenue
+lab15(#     FROM orders
+lab15(#     GROUP BY product_name
+lab15(# ),
+lab15-# cumulative AS (
+lab15(#     SELECT product_name, revenue,
+lab15(#            ROUND(100 * SUM(revenue) OVER (ORDER BY revenue DESC)
+lab15(#                      / SUM(revenue) OVER (), 1) AS cumulative_pct
+lab15(#     FROM product_revenue
+lab15(# )
+lab15-# SELECT product_name, revenue, cumulative_pct,
+lab15-#        CASE
+lab15-#            WHEN cumulative_pct <= 80 THEN 'A'
+lab15-#            WHEN cumulative_pct <= 95 THEN 'B'
+lab15-#            ELSE 'C'
+lab15-#        END AS abc_class
+lab15-# FROM cumulative
+lab15-# ORDER BY revenue DESC;
+   product_name    |  revenue   | cumulative_pct | abc_class
+-------------------+------------+----------------+-----------
+ Headphones        | 1550000.00 |           52.2 | A
+ Power Bank        |  480000.00 |           68.4 | A
+ T-shirt           |  350000.00 |           80.1 | B
+ Rice 5kg          |  300000.00 |           90.2 | B
+ Big Panda Noodles |  250000.00 |           98.7 | C
+ Umbrella          |   40000.00 |          100.0 | C
+(6 rows)
+
+
+lab15=#
+lab15=# -- My example 2: month-over-month revenue growth per store (CTE + LAG)
+lab15=# WITH monthly AS (
+lab15(#     SELECT store,
+lab15(#            DATE_TRUNC('month', sale_date)::DATE AS month,
+lab15(#            SUM(revenue) AS revenue
+lab15(#     FROM store_sales
+lab15(#     WHERE sale_date < '2026-05-01'
+lab15(#     GROUP BY store, DATE_TRUNC('month', sale_date)
+lab15(# )
+lab15-# SELECT store, month, revenue,
+lab15-#        LAG(revenue) OVER (PARTITION BY store ORDER BY month) AS prev_month,
+lab15-#        ROUND(100 * (revenue - LAG(revenue) OVER (PARTITION BY store ORDER BY month))
+lab15(#              / LAG(revenue) OVER (PARTITION BY store ORDER BY month), 1) AS growth_pct
+lab15-# FROM monthly
+lab15-# ORDER BY store, month;
+  store   |   month    |  revenue   | prev_month | growth_pct
+----------+------------+------------+------------+------------
+ Almaty   | 2026-01-01 | 8474910.00 |            |
+ Almaty   | 2026-02-01 | 8497310.00 | 8474910.00 |        0.3
+ Almaty   | 2026-03-01 | 8524710.00 | 8497310.00 |        0.3
+ Almaty   | 2026-04-01 | 8514479.00 | 8524710.00 |       -0.1
+ Bishkek  | 2026-01-01 | 9325820.00 |            |
+ Bishkek  | 2026-02-01 | 7674190.00 | 9325820.00 |      -17.7
+ Bishkek  | 2026-03-01 | 8536130.00 | 7674190.00 |       11.2
+ Bishkek  | 2026-04-01 | 8526121.00 | 8536130.00 |       -0.1
+ Tashkent | 2026-01-01 | 8503490.00 |            |
+ Tashkent | 2026-02-01 | 7662968.00 | 8503490.00 |       -9.9
+ Tashkent | 2026-03-01 | 9411212.00 | 7662968.00 |       22.8
+ Tashkent | 2026-04-01 | 8502750.00 | 9411212.00 |       -9.7
+(12 rows)
+
+
+lab15=#
+lab15=# -- All tables used in this lab
+lab15=# \dt
+              List of tables
+ Schema |     Name      | Type  |  Owner
+--------+---------------+-------+----------
+ public | employees     | table | postgres
+ public | orders        | table | postgres
+ public | pivoted_sales | table | postgres
+ public | sales         | table | postgres
+ public | store_sales   | table | postgres
+ public | warehouse_1   | table | postgres
+ public | warehouse_2   | table | postgres
+(7 rows)
+
+
+lab15=#
+lab15=# \q
