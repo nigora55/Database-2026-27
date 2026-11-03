@@ -1,0 +1,749 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# CREATE DATABASE lab14;
+CREATE DATABASE
+postgres=# \c lab14
+You are now connected to database "lab14" as user "postgres".
+lab14=#
+lab14=# -- Sample tables for the lab
+lab14=# DROP TABLE IF EXISTS order_items, orders, products, customers, employees,
+lab14-#                      user_profiles, users, books, authors, enrollments, courses, students CASCADE;
+ЗАМЕЧАНИЕ:  таблица "order_items" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "orders" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "products" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "customers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "employees" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "user_profiles" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "users" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "books" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "authors" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "enrollments" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "courses" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "students" не существует, пропускается
+DROP TABLE
+lab14=#
+lab14=# -- From lab. Customers and orders
+lab14=# CREATE TABLE customers (
+lab14(#     customer_id SERIAL PRIMARY KEY,
+lab14(#     name        VARCHAR(100),
+lab14(#     email       VARCHAR(100),
+lab14(#     city        VARCHAR(50)                 -- my column, used in my example
+lab14(# );
+CREATE TABLE
+lab14=#
+lab14=# CREATE TABLE orders (
+lab14(#     order_id     SERIAL PRIMARY KEY,
+lab14(#     customer_id  INTEGER REFERENCES customers(customer_id),
+lab14(#     order_date   DATE,
+lab14(#     total_amount DECIMAL(10,2)
+lab14(# );
+CREATE TABLE
+lab14=# \d orders
+                                     Table "public.orders"
+    Column    |     Type      | Collation | Nullable |                 Default
+--------------+---------------+-----------+----------+------------------------------------------
+ order_id     | integer       |           | not null | nextval('orders_order_id_seq'::regclass)
+ customer_id  | integer       |           |          |
+ order_date   | date          |           |          |
+ total_amount | numeric(10,2) |           |          |
+Indexes:
+    "orders_pkey" PRIMARY KEY, btree (order_id)
+Foreign-key constraints:
+    "orders_customer_id_fkey" FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+
+
+lab14=#
+lab14=# INSERT INTO customers (name, email, city) VALUES
+lab14-#     ('Aizada Bekova',  'aizada@gmail.com',  'Bishkek'),
+lab14-#     ('Timur Asanov',   'timur@gmail.com',   'Almaty'),
+lab14-#     ('Dana Kim',       'dana@mail.ru',      'Bishkek'),
+lab14-#     ('Erlan Sadykov',  'erlan@auca.kg',     'Tashkent'),
+lab14-#     ('Saule Nurova',   'saule@gmail.com',   'Almaty');     -- no orders
+INSERT 0 5
+lab14=# SELECT * FROM customers;
+ customer_id |     name      |      email       |   city
+-------------+---------------+------------------+----------
+           1 | Aizada Bekova | aizada@gmail.com | Bishkek
+           2 | Timur Asanov  | timur@gmail.com  | Almaty
+           3 | Dana Kim      | dana@mail.ru     | Bishkek
+           4 | Erlan Sadykov | erlan@auca.kg    | Tashkent
+           5 | Saule Nurova  | saule@gmail.com  | Almaty
+(5 rows)
+
+
+lab14=#
+lab14=# INSERT INTO orders (customer_id, order_date, total_amount) VALUES
+lab14-#     (1, '2023-12-20',  450.00),
+lab14-#     (1, '2024-02-14', 1250.00),
+lab14-#     (2, '2024-03-05',   80.00),
+lab14-#     (3, '2024-05-11',  640.00),
+lab14-#     (4, '2023-11-02',  300.00),
+lab14-#     (NULL, '2024-06-01', 210.00);                          -- order without customer (guest)
+INSERT 0 6
+lab14=# SELECT * FROM orders;
+ order_id | customer_id | order_date | total_amount
+----------+-------------+------------+--------------
+        1 |           1 | 2023-12-20 |       450.00
+        2 |           1 | 2024-02-14 |      1250.00
+        3 |           2 | 2024-03-05 |        80.00
+        4 |           3 | 2024-05-11 |       640.00
+        5 |           4 | 2023-11-02 |       300.00
+        6 |             | 2024-06-01 |       210.00
+(6 rows)
+
+
+lab14=#
+lab14=# CREATE TABLE products (
+lab14(#     product_id   SERIAL PRIMARY KEY,
+lab14(#     product_name VARCHAR(100),
+lab14(#     category     VARCHAR(50),
+lab14(#     price        DECIMAL(10,2)
+lab14(# );
+CREATE TABLE
+lab14=# INSERT INTO products (product_name, category, price) VALUES
+lab14-#     ('Big Panda Noodles', 'Grocery',      90.00),
+lab14-#     ('Rice 5kg',          'Grocery',     560.00),
+lab14-#     ('Headphones',        'Electronics', 1250.00),
+lab14-#     ('T-shirt',           'Clothing',    320.00),
+lab14-#     ('Umbrella',          'Accessories', 400.00);              -- never sold
+INSERT 0 5
+lab14=# SELECT * FROM products;
+ product_id |   product_name    |  category   |  price
+------------+-------------------+-------------+---------
+          1 | Big Panda Noodles | Grocery     |   90.00
+          2 | Rice 5kg          | Grocery     |  560.00
+          3 | Headphones        | Electronics | 1250.00
+          4 | T-shirt           | Clothing    |  320.00
+          5 | Umbrella          | Accessories |  400.00
+(5 rows)
+
+
+lab14=#
+lab14=# CREATE TABLE order_items (
+lab14(#     order_id   INTEGER REFERENCES orders(order_id),
+lab14(#     product_id INTEGER REFERENCES products(product_id),
+lab14(#     quantity   INTEGER CHECK (quantity > 0),
+lab14(#     PRIMARY KEY (order_id, product_id)
+lab14(# );
+CREATE TABLE
+lab14=# INSERT INTO order_items VALUES
+lab14-#     (1, 1, 5), (1, 4, 1),
+lab14-#     (2, 3, 1),
+lab14-#     (3, 1, 1),
+lab14-#     (4, 2, 1), (4, 1, 1),
+lab14-#     (5, 1, 2), (5, 4, 1),
+lab14-#     (6, 1, 1), (6, 4, 1);
+INSERT 0 10
+lab14=# SELECT * FROM order_items;
+ order_id | product_id | quantity
+----------+------------+----------
+        1 |          1 |        5
+        1 |          4 |        1
+        2 |          3 |        1
+        3 |          1 |        1
+        4 |          2 |        1
+        4 |          1 |        1
+        5 |          1 |        2
+        5 |          4 |        1
+        6 |          1 |        1
+        6 |          4 |        1
+(10 rows)
+
+
+lab14=#
+lab14=# -- ===== 1. INNER JOIN =====
+lab14=# -- From lab. Only customers who placed orders
+lab14=# SELECT c.name, c.email, o.order_date, o.total_amount
+lab14-# FROM customers c
+lab14-# INNER JOIN orders o ON c.customer_id = o.customer_id;
+     name      |      email       | order_date | total_amount
+---------------+------------------+------------+--------------
+ Aizada Bekova | aizada@gmail.com | 2023-12-20 |       450.00
+ Aizada Bekova | aizada@gmail.com | 2024-02-14 |      1250.00
+ Timur Asanov  | timur@gmail.com  | 2024-03-05 |        80.00
+ Dana Kim      | dana@mail.ru     | 2024-05-11 |       640.00
+ Erlan Sadykov | erlan@auca.kg    | 2023-11-02 |       300.00
+(5 rows)
+
+
+lab14=#
+lab14=# -- ===== 2. LEFT JOIN =====
+lab14=# -- From lab. All customers, Saule has NULL order columns
+lab14=# SELECT c.name, c.email, o.order_date, o.total_amount
+lab14-# FROM customers c
+lab14-# LEFT JOIN orders o ON c.customer_id = o.customer_id;
+     name      |      email       | order_date | total_amount
+---------------+------------------+------------+--------------
+ Aizada Bekova | aizada@gmail.com | 2023-12-20 |       450.00
+ Aizada Bekova | aizada@gmail.com | 2024-02-14 |      1250.00
+ Timur Asanov  | timur@gmail.com  | 2024-03-05 |        80.00
+ Dana Kim      | dana@mail.ru     | 2024-05-11 |       640.00
+ Erlan Sadykov | erlan@auca.kg    | 2023-11-02 |       300.00
+ Saule Nurova  | saule@gmail.com  |            |
+(6 rows)
+
+
+lab14=#
+lab14=# -- ===== 3. RIGHT JOIN =====
+lab14=# -- From lab. All orders, the guest order has NULL customer columns
+lab14=# SELECT c.name, c.email, o.order_date, o.total_amount
+lab14-# FROM customers c
+lab14-# RIGHT JOIN orders o ON c.customer_id = o.customer_id;
+     name      |      email       | order_date | total_amount
+---------------+------------------+------------+--------------
+ Aizada Bekova | aizada@gmail.com | 2023-12-20 |       450.00
+ Aizada Bekova | aizada@gmail.com | 2024-02-14 |      1250.00
+ Timur Asanov  | timur@gmail.com  | 2024-03-05 |        80.00
+ Dana Kim      | dana@mail.ru     | 2024-05-11 |       640.00
+ Erlan Sadykov | erlan@auca.kg    | 2023-11-02 |       300.00
+               |                  | 2024-06-01 |       210.00
+(6 rows)
+
+
+lab14=#
+lab14=# -- ===== 4. FULL OUTER JOIN =====
+lab14=# -- From lab. All customers and all orders
+lab14=# SELECT c.name, c.email, o.order_date, o.total_amount
+lab14-# FROM customers c
+lab14-# FULL OUTER JOIN orders o ON c.customer_id = o.customer_id;
+     name      |      email       | order_date | total_amount
+---------------+------------------+------------+--------------
+ Aizada Bekova | aizada@gmail.com | 2023-12-20 |       450.00
+ Aizada Bekova | aizada@gmail.com | 2024-02-14 |      1250.00
+ Timur Asanov  | timur@gmail.com  | 2024-03-05 |        80.00
+ Dana Kim      | dana@mail.ru     | 2024-05-11 |       640.00
+ Erlan Sadykov | erlan@auca.kg    | 2023-11-02 |       300.00
+               |                  | 2024-06-01 |       210.00
+ Saule Nurova  | saule@gmail.com  |            |
+(7 rows)
+
+
+lab14=#
+lab14=# -- Row counts of each join type on the same data
+lab14=# SELECT
+lab14-#     (SELECT COUNT(*) FROM customers c INNER JOIN orders o ON c.customer_id = o.customer_id)      AS inner_rows,
+lab14-#     (SELECT COUNT(*) FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id)       AS left_rows,
+lab14-#     (SELECT COUNT(*) FROM customers c RIGHT JOIN orders o ON c.customer_id = o.customer_id)      AS right_rows,
+lab14-#     (SELECT COUNT(*) FROM customers c FULL OUTER JOIN orders o ON c.customer_id = o.customer_id) AS full_rows;
+ inner_rows | left_rows | right_rows | full_rows
+------------+-----------+------------+-----------
+          5 |         6 |          6 |         7
+(1 row)
+
+
+lab14=#
+lab14=# -- ===== 5. CROSS JOIN =====
+lab14=# -- From lab. Every customer with every product (5 x 5 = 25 rows)
+lab14=# SELECT c.name, p.product_name
+lab14-# FROM customers c
+lab14-# CROSS JOIN products p;
+     name      |   product_name
+---------------+-------------------
+ Aizada Bekova | Big Panda Noodles
+ Timur Asanov  | Big Panda Noodles
+ Dana Kim      | Big Panda Noodles
+ Erlan Sadykov | Big Panda Noodles
+ Saule Nurova  | Big Panda Noodles
+ Aizada Bekova | Rice 5kg
+ Timur Asanov  | Rice 5kg
+ Dana Kim      | Rice 5kg
+ Erlan Sadykov | Rice 5kg
+ Saule Nurova  | Rice 5kg
+ Aizada Bekova | Headphones
+ Timur Asanov  | Headphones
+ Dana Kim      | Headphones
+ Erlan Sadykov | Headphones
+ Saule Nurova  | Headphones
+ Aizada Bekova | T-shirt
+ Timur Asanov  | T-shirt
+ Dana Kim      | T-shirt
+ Erlan Sadykov | T-shirt
+ Saule Nurova  | T-shirt
+ Aizada Bekova | Umbrella
+ Timur Asanov  | Umbrella
+ Dana Kim      | Umbrella
+ Erlan Sadykov | Umbrella
+ Saule Nurova  | Umbrella
+(25 rows)
+
+
+lab14=#
+lab14=# SELECT COUNT(*) AS cross_join_rows
+lab14-# FROM customers c
+lab14-# CROSS JOIN products p;
+ cross_join_rows
+-----------------
+              25
+(1 row)
+
+
+lab14=#
+lab14=# -- ===== 6. Multiple table joins =====
+lab14=# -- From lab. Customer -> order -> items -> product
+lab14=# SELECT c.name, o.order_date, oi.quantity, p.product_name, p.price
+lab14-# FROM customers c
+lab14-# INNER JOIN orders o ON c.customer_id = o.customer_id
+lab14-# INNER JOIN order_items oi ON o.order_id = oi.order_id
+lab14-# INNER JOIN products p ON oi.product_id = p.product_id;
+     name      | order_date | quantity |   product_name    |  price
+---------------+------------+----------+-------------------+---------
+ Aizada Bekova | 2023-12-20 |        5 | Big Panda Noodles |   90.00
+ Aizada Bekova | 2023-12-20 |        1 | T-shirt           |  320.00
+ Aizada Bekova | 2024-02-14 |        1 | Headphones        | 1250.00
+ Timur Asanov  | 2024-03-05 |        1 | Big Panda Noodles |   90.00
+ Dana Kim      | 2024-05-11 |        1 | Rice 5kg          |  560.00
+ Dana Kim      | 2024-05-11 |        1 | Big Panda Noodles |   90.00
+ Erlan Sadykov | 2023-11-02 |        2 | Big Panda Noodles |   90.00
+ Erlan Sadykov | 2023-11-02 |        1 | T-shirt           |  320.00
+(8 rows)
+
+
+lab14=#
+lab14=# -- ===== 7. Self join =====
+lab14=# CREATE TABLE employees (
+lab14(#     employee_id SERIAL PRIMARY KEY,
+lab14(#     name        VARCHAR(100),
+lab14(#     manager_id  INTEGER REFERENCES employees(employee_id)
+lab14(# );
+CREATE TABLE
+lab14=# INSERT INTO employees (name, manager_id) VALUES
+lab14-#     ('Nurlan Osmonov', NULL),     -- store director, no manager
+lab14-#     ('Alina Kim',      1),
+lab14-#     ('Bermet Asanova', 1),
+lab14-#     ('Aibek Toktomushev', 3),
+lab14-#     ('Gulnara Abdieva',   3);
+INSERT 0 5
+lab14=# SELECT * FROM employees;
+ employee_id |       name        | manager_id
+-------------+-------------------+------------
+           1 | Nurlan Osmonov    |
+           2 | Alina Kim         |          1
+           3 | Bermet Asanova    |          1
+           4 | Aibek Toktomushev |          3
+           5 | Gulnara Abdieva   |          3
+(5 rows)
+
+
+lab14=#
+lab14=# -- From lab. Employees and their managers
+lab14=# SELECT e1.name AS employee, e2.name AS manager
+lab14-# FROM employees e1
+lab14-# LEFT JOIN employees e2 ON e1.manager_id = e2.employee_id;
+     employee      |    manager
+-------------------+----------------
+ Nurlan Osmonov    |
+ Alina Kim         | Nurlan Osmonov
+ Bermet Asanova    | Nurlan Osmonov
+ Aibek Toktomushev | Bermet Asanova
+ Gulnara Abdieva   | Bermet Asanova
+(5 rows)
+
+
+lab14=#
+lab14=# -- ===== 8. Join with conditions =====
+lab14=# -- From lab. Orders from 2024 with amount > 100
+lab14=# SELECT c.name, o.order_date, o.total_amount
+lab14-# FROM customers c
+lab14-# INNER JOIN orders o ON c.customer_id = o.customer_id
+lab14-# WHERE o.order_date >= '2024-01-01'
+lab14-#   AND o.total_amount > 100;
+     name      | order_date | total_amount
+---------------+------------+--------------
+ Aizada Bekova | 2024-02-14 |      1250.00
+ Dana Kim      | 2024-05-11 |       640.00
+(2 rows)
+
+
+lab14=#
+lab14=# -- ===== 9. One-to-one =====
+lab14=# CREATE TABLE users (
+lab14(#     user_id  SERIAL PRIMARY KEY,
+lab14(#     username VARCHAR(50) UNIQUE NOT NULL
+lab14(# );
+CREATE TABLE
+lab14=# CREATE TABLE user_profiles (
+lab14(#     user_id    INTEGER PRIMARY KEY REFERENCES users(user_id),
+lab14(#     first_name VARCHAR(50),
+lab14(#     last_name  VARCHAR(50),
+lab14(#     phone      VARCHAR(20)
+lab14(# );
+CREATE TABLE
+lab14=# INSERT INTO users (username) VALUES ('aizada_b'), ('timur_a'), ('new_user');
+INSERT 0 3
+lab14=# INSERT INTO user_profiles VALUES
+lab14-#     (1, 'Aizada', 'Bekova', '0555111222'),
+lab14-#     (2, 'Timur',  'Asanov', '0777555666');
+INSERT 0 2
+lab14=# SELECT * FROM users;
+ user_id | username
+---------+----------
+       1 | aizada_b
+       2 | timur_a
+       3 | new_user
+(3 rows)
+
+
+lab14=# SELECT * FROM user_profiles;
+ user_id | first_name | last_name |   phone
+---------+------------+-----------+------------
+       1 | Aizada     | Bekova    | 0555111222
+       2 | Timur      | Asanov    | 0777555666
+(2 rows)
+
+
+lab14=#
+lab14=# -- From lab. Users with profiles (new_user has no profile -> NULLs)
+lab14=# SELECT u.username, up.first_name, up.last_name, up.phone
+lab14-# FROM users u
+lab14-# LEFT JOIN user_profiles up ON u.user_id = up.user_id;
+ username | first_name | last_name |   phone
+----------+------------+-----------+------------
+ aizada_b | Aizada     | Bekova    | 0555111222
+ timur_a  | Timur      | Asanov    | 0777555666
+ new_user |            |           |
+(3 rows)
+
+
+lab14=#
+lab14=# -- ===== 10. One-to-many =====
+lab14=# CREATE TABLE authors (
+lab14(#     author_id   SERIAL PRIMARY KEY,
+lab14(#     author_name VARCHAR(100)
+lab14(# );
+CREATE TABLE
+lab14=# CREATE TABLE books (
+lab14(#     book_id          SERIAL PRIMARY KEY,
+lab14(#     title            VARCHAR(200),
+lab14(#     publication_year INTEGER,
+lab14(#     author_id        INTEGER REFERENCES authors(author_id)
+lab14(# );
+CREATE TABLE
+lab14=# INSERT INTO authors (author_name) VALUES ('Chingiz Aitmatov'), ('Abraham Silberschatz');
+INSERT 0 2
+lab14=# INSERT INTO books (title, publication_year, author_id) VALUES
+lab14-#     ('Jamilia', 1958, 1),
+lab14-#     ('The White Ship', 1970, 1),
+lab14-#     ('The Day Lasts More Than a Hundred Years', 1980, 1),
+lab14-#     ('Database System Concepts', 2010, 2);
+INSERT 0 4
+lab14=# SELECT * FROM authors;
+ author_id |     author_name
+-----------+----------------------
+         1 | Chingiz Aitmatov
+         2 | Abraham Silberschatz
+(2 rows)
+
+
+lab14=# SELECT * FROM books;
+ book_id |                  title                  | publication_year | author_id
+---------+-----------------------------------------+------------------+-----------
+       1 | Jamilia                                 |             1958 |         1
+       2 | The White Ship                          |             1970 |         1
+       3 | The Day Lasts More Than a Hundred Years |             1980 |         1
+       4 | Database System Concepts                |             2010 |         2
+(4 rows)
+
+
+lab14=#
+lab14=# -- From lab. Authors and their books (author name repeats)
+lab14=# SELECT a.author_name, b.title, b.publication_year
+lab14-# FROM authors a
+lab14-# INNER JOIN books b ON a.author_id = b.author_id
+lab14-# ORDER BY a.author_name, b.publication_year;
+     author_name      |                  title                  | publication_year
+----------------------+-----------------------------------------+------------------
+ Abraham Silberschatz | Database System Concepts                |             2010
+ Chingiz Aitmatov     | Jamilia                                 |             1958
+ Chingiz Aitmatov     | The White Ship                          |             1970
+ Chingiz Aitmatov     | The Day Lasts More Than a Hundred Years |             1980
+(4 rows)
+
+
+lab14=#
+lab14=# -- ===== 11. Many-to-many =====
+lab14=# CREATE TABLE students (
+lab14(#     student_id   SERIAL PRIMARY KEY,
+lab14(#     student_name VARCHAR(100)
+lab14(# );
+CREATE TABLE
+lab14=# CREATE TABLE courses (
+lab14(#     course_id   SERIAL PRIMARY KEY,
+lab14(#     course_name VARCHAR(100)
+lab14(# );
+CREATE TABLE
+lab14=# CREATE TABLE enrollments (
+lab14(#     student_id      INTEGER REFERENCES students(student_id),
+lab14(#     course_id       INTEGER REFERENCES courses(course_id),
+lab14(#     enrollment_date DATE DEFAULT '2026-09-01',
+lab14(#     grade           CHAR(2),
+lab14(#     PRIMARY KEY (student_id, course_id)
+lab14(# );
+CREATE TABLE
+lab14=# INSERT INTO students (student_name) VALUES ('Nigora'), ('Timur'), ('Aizada');
+INSERT 0 3
+lab14=# INSERT INTO courses (course_name) VALUES ('Databases'), ('Microeconomics'), ('Optimization Methods');
+INSERT 0 3
+lab14=# INSERT INTO enrollments (student_id, course_id, grade) VALUES
+lab14-#     (1, 1, 'A'), (1, 2, 'B+'), (1, 3, NULL),
+lab14-#     (2, 1, 'B'), (3, 2, 'A-'), (3, 3, 'A');
+INSERT 0 6
+lab14=# SELECT * FROM enrollments;
+ student_id | course_id | enrollment_date | grade
+------------+-----------+-----------------+-------
+          1 |         1 | 2026-09-01      | A
+          1 |         2 | 2026-09-01      | B+
+          1 |         3 | 2026-09-01      |
+          2 |         1 | 2026-09-01      | B
+          3 |         2 | 2026-09-01      | A-
+          3 |         3 | 2026-09-01      | A
+(6 rows)
+
+
+lab14=#
+lab14=# -- From lab. Students and their courses through the junction table
+lab14=# SELECT s.student_name, c.course_name, e.enrollment_date, e.grade
+lab14-# FROM students s
+lab14-# INNER JOIN enrollments e ON s.student_id = e.student_id
+lab14-# INNER JOIN courses c ON e.course_id = c.course_id
+lab14-# WHERE e.grade IS NOT NULL
+lab14-# ORDER BY s.student_name, c.course_name;
+ student_name |     course_name      | enrollment_date | grade
+--------------+----------------------+-----------------+-------
+ Aizada       | Microeconomics       | 2026-09-01      | A-
+ Aizada       | Optimization Methods | 2026-09-01      | A
+ Nigora       | Databases            | 2026-09-01      | A
+ Nigora       | Microeconomics       | 2026-09-01      | B+
+ Timur        | Databases            | 2026-09-01      | B
+(5 rows)
+
+
+lab14=#
+lab14=# -- ===== 12. Performance: indexes =====
+lab14=# -- From lab. Indexes on foreign key columns
+lab14=# CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX
+lab14=# CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX
+lab14=# CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX
+lab14=# \d orders
+                                     Table "public.orders"
+    Column    |     Type      | Collation | Nullable |                 Default
+--------------+---------------+-----------+----------+------------------------------------------
+ order_id     | integer       |           | not null | nextval('orders_order_id_seq'::regclass)
+ customer_id  | integer       |           |          |
+ order_date   | date          |           |          |
+ total_amount | numeric(10,2) |           |          |
+Indexes:
+    "orders_pkey" PRIMARY KEY, btree (order_id)
+    "idx_orders_customer_id" btree (customer_id)
+Foreign-key constraints:
+    "orders_customer_id_fkey" FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+Referenced by:
+    TABLE "order_items" CONSTRAINT "order_items_order_id_fkey" FOREIGN KEY (order_id) REFERENCES orders(order_id)
+
+
+lab14=# \d order_items
+              Table "public.order_items"
+   Column   |  Type   | Collation | Nullable | Default
+------------+---------+-----------+----------+---------
+ order_id   | integer |           | not null |
+ product_id | integer |           | not null |
+ quantity   | integer |           |          |
+Indexes:
+    "order_items_pkey" PRIMARY KEY, btree (order_id, product_id)
+    "idx_order_items_order_id" btree (order_id)
+    "idx_order_items_product_id" btree (product_id)
+Check constraints:
+    "order_items_quantity_check" CHECK (quantity > 0)
+Foreign-key constraints:
+    "order_items_order_id_fkey" FOREIGN KEY (order_id) REFERENCES orders(order_id)
+    "order_items_product_id_fkey" FOREIGN KEY (product_id) REFERENCES products(product_id)
+
+
+lab14=#
+lab14=# -- ===== 13. Common pitfalls =====
+lab14=# -- From lab. WRONG: no join condition -> Cartesian product (5 x 6 = 30 rows)
+lab14=# SELECT c.name, o.order_date
+lab14-# FROM customers c, orders o;
+     name      | order_date
+---------------+------------
+ Aizada Bekova | 2023-12-20
+ Aizada Bekova | 2024-02-14
+ Aizada Bekova | 2024-03-05
+ Aizada Bekova | 2024-05-11
+ Aizada Bekova | 2023-11-02
+ Aizada Bekova | 2024-06-01
+ Timur Asanov  | 2023-12-20
+ Timur Asanov  | 2024-02-14
+ Timur Asanov  | 2024-03-05
+ Timur Asanov  | 2024-05-11
+ Timur Asanov  | 2023-11-02
+ Timur Asanov  | 2024-06-01
+ Dana Kim      | 2023-12-20
+ Dana Kim      | 2024-02-14
+ Dana Kim      | 2024-03-05
+ Dana Kim      | 2024-05-11
+ Dana Kim      | 2023-11-02
+ Dana Kim      | 2024-06-01
+ Erlan Sadykov | 2023-12-20
+ Erlan Sadykov | 2024-02-14
+ Erlan Sadykov | 2024-03-05
+ Erlan Sadykov | 2024-05-11
+ Erlan Sadykov | 2023-11-02
+ Erlan Sadykov | 2024-06-01
+ Saule Nurova  | 2023-12-20
+ Saule Nurova  | 2024-02-14
+ Saule Nurova  | 2024-03-05
+ Saule Nurova  | 2024-05-11
+ Saule Nurova  | 2023-11-02
+ Saule Nurova  | 2024-06-01
+(30 rows)
+
+
+lab14=#
+lab14=# -- From lab. CORRECT
+lab14=# SELECT c.name, o.order_date
+lab14-# FROM customers c
+lab14-# INNER JOIN orders o ON c.customer_id = o.customer_id;
+     name      | order_date
+---------------+------------
+ Aizada Bekova | 2024-02-14
+ Aizada Bekova | 2023-12-20
+ Timur Asanov  | 2024-03-05
+ Dana Kim      | 2024-05-11
+ Erlan Sadykov | 2023-11-02
+(5 rows)
+
+
+lab14=#
+lab14=# -- From lab. Customers without orders (IS NULL after LEFT JOIN)
+lab14=# SELECT c.name
+lab14-# FROM customers c
+lab14-# LEFT JOIN orders o ON c.customer_id = o.customer_id
+lab14-# WHERE o.customer_id IS NULL;
+     name
+--------------
+ Saule Nurova
+(1 row)
+
+
+lab14=#
+lab14=# -- Many-to-many mistake: students and courses without the junction table
+lab14=# -- gives every student with every course (9 rows instead of 6 real enrollments)
+lab14=# SELECT s.student_name, c.course_name
+lab14-# FROM students s, courses c;
+ student_name |     course_name
+--------------+----------------------
+ Nigora       | Databases
+ Nigora       | Microeconomics
+ Nigora       | Optimization Methods
+ Timur        | Databases
+ Timur        | Microeconomics
+ Timur        | Optimization Methods
+ Aizada       | Databases
+ Aizada       | Microeconomics
+ Aizada       | Optimization Methods
+(9 rows)
+
+
+lab14=#
+lab14=# -- EXPECTED ERROR: customer_id exists in both tables, so it must have an alias
+lab14=# SELECT customer_id, name, order_date
+lab14-# FROM customers c
+lab14-# INNER JOIN orders o ON c.customer_id = o.customer_id;
+ОШИБКА:  неоднозначная ссылка на столбец "customer_id"
+LINE 1: SELECT customer_id, name, order_date
+               ^
+lab14=#
+lab14=# -- EXPECTED ERROR: order for a customer that does not exist (foreign key)
+lab14=# INSERT INTO orders (customer_id, order_date, total_amount) VALUES (99, '2024-07-01', 100.00);
+ОШИБКА:  INSERT или UPDATE в таблице "orders" нарушает ограничение внешнего ключа "orders_customer_id_fkey"
+DETAIL:  Ключ (customer_id)=(99) отсутствует в таблице "customers".
+lab14=# SELECT * FROM orders;
+ order_id | customer_id | order_date | total_amount
+----------+-------------+------------+--------------
+        1 |           1 | 2023-12-20 |       450.00
+        2 |           1 | 2024-02-14 |      1250.00
+        3 |           2 | 2024-03-05 |        80.00
+        4 |           3 | 2024-05-11 |       640.00
+        5 |           4 | 2023-11-02 |       300.00
+        6 |             | 2024-06-01 |       210.00
+(6 rows)
+
+
+lab14=#
+lab14=# -- ===== MY EXAMPLES (retail) =====
+lab14=# -- My example 1: sales by city, including customers with no purchases
+lab14=# -- LEFT JOIN + COALESCE so that a city with zero orders still appears with 0
+lab14=# SELECT c.city,
+lab14-#        COUNT(DISTINCT c.customer_id) AS customers,
+lab14-#        COUNT(o.order_id) AS orders,
+lab14-#        COALESCE(SUM(o.total_amount), 0) AS revenue
+lab14-# FROM customers c
+lab14-# LEFT JOIN orders o ON c.customer_id = o.customer_id
+lab14-# GROUP BY c.city
+lab14-# ORDER BY revenue DESC;
+   city   | customers | orders | revenue
+----------+-----------+--------+---------
+ Bishkek  |         2 |      3 | 2340.00
+ Tashkent |         1 |      1 |  300.00
+ Almaty   |         2 |      1 |   80.00
+(3 rows)
+
+
+lab14=#
+lab14=# -- My example 2: dead stock - products that were never sold
+lab14=# -- (LEFT JOIN: unsold products get no matching rows, so COUNT = 0)
+lab14=# SELECT p.product_name, p.category,
+lab14-#        COALESCE(SUM(oi.quantity), 0) AS units_sold,
+lab14-#        CASE WHEN COUNT(oi.product_id) = 0 THEN 'Dead stock' ELSE 'Selling' END AS status
+lab14-# FROM products p
+lab14-# LEFT JOIN order_items oi ON p.product_id = oi.product_id
+lab14-# GROUP BY p.product_name, p.category
+lab14-# ORDER BY units_sold DESC;
+   product_name    |  category   | units_sold |   status
+-------------------+-------------+------------+------------
+ Big Panda Noodles | Grocery     |         10 | Selling
+ T-shirt           | Clothing    |          3 | Selling
+ Headphones        | Electronics |          1 | Selling
+ Rice 5kg          | Grocery     |          1 | Selling
+ Umbrella          | Accessories |          0 | Dead stock
+(5 rows)
+
+
+lab14=#
+lab14=# -- All tables used in this lab
+lab14=# \dt
+               List of tables
+ Schema |     Name      | Type  |  Owner
+--------+---------------+-------+----------
+ public | authors       | table | postgres
+ public | books         | table | postgres
+ public | courses       | table | postgres
+ public | customers     | table | postgres
+ public | employees     | table | postgres
+ public | enrollments   | table | postgres
+ public | order_items   | table | postgres
+ public | orders        | table | postgres
+ public | products      | table | postgres
+ public | students      | table | postgres
+ public | user_profiles | table | postgres
+ public | users         | table | postgres
+(12 rows)
+
+
+lab14=#
+lab14=# \q
