@@ -1,0 +1,1095 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# CREATE DATABASE lab16;
+CREATE DATABASE
+postgres=# \c lab16
+You are now connected to database "lab16" as user "postgres".
+lab16=#
+lab16=# -- Sample tables for the lab
+lab16=# DROP TABLE IF EXISTS accounts, order_items, orders, inventory, customers, products,
+lab16-#                      logs, audit_log, user_preferences, users, store_stock CASCADE;
+ЗАМЕЧАНИЕ:  таблица "accounts" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "order_items" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "orders" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "inventory" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "customers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "products" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "logs" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "audit_log" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "user_preferences" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "users" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "store_stock" не существует, пропускается
+DROP TABLE
+lab16=#
+lab16=# CREATE TABLE accounts (
+lab16(#     account_id SERIAL PRIMARY KEY,
+lab16(#     owner      VARCHAR(100),
+lab16(#     balance    DECIMAL(12,2) CHECK (balance >= 0)     -- balance can not be negative
+lab16(# );
+CREATE TABLE
+lab16=# INSERT INTO accounts (owner, balance) VALUES
+lab16-#     ('Nigora',  2000.00),
+lab16-#     ('Timur',   1500.00),
+lab16-#     ('Aizada',    50.00);
+INSERT 0 3
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 2000.00
+          2 | Timur  | 1500.00
+          3 | Aizada |   50.00
+(3 rows)
+
+
+lab16=#
+lab16=# CREATE TABLE customers (
+lab16(#     customer_id SERIAL PRIMARY KEY,
+lab16(#     name        VARCHAR(100),
+lab16(#     email       VARCHAR(100) UNIQUE
+lab16(# );
+CREATE TABLE
+lab16=# INSERT INTO customers (name, email) VALUES ('Dana Kim', 'dana@email.com');
+INSERT 0 1
+lab16=#
+lab16=# CREATE TABLE orders (
+lab16(#     id          SERIAL PRIMARY KEY,                 -- the lab uses currval('orders_id_seq')
+lab16(#     customer_id INTEGER REFERENCES customers(customer_id),
+lab16(#     total       DECIMAL(10,2)
+lab16(# );
+CREATE TABLE
+lab16=#
+lab16=# CREATE TABLE inventory (
+lab16(#     product_id INTEGER PRIMARY KEY,
+lab16(#     name       VARCHAR(100),
+lab16(#     stock      INTEGER CHECK (stock >= 0)          -- stock can not be negative
+lab16(# );
+CREATE TABLE
+lab16=# INSERT INTO inventory VALUES
+lab16-#     (101, 'Big Panda Noodles', 50),
+lab16-#     (102, 'Rice 5kg',          10),
+lab16-#     (103, 'Headphones',         1);
+INSERT 0 3
+lab16=#
+lab16=# CREATE TABLE order_items (
+lab16(#     order_id   INTEGER REFERENCES orders(id),
+lab16(#     product_id INTEGER REFERENCES inventory(product_id),
+lab16(#     quantity   INTEGER CHECK (quantity > 0)
+lab16(# );
+CREATE TABLE
+lab16=#
+lab16=# CREATE TABLE products (
+lab16(#     id    SERIAL PRIMARY KEY,
+lab16(#     name  VARCHAR(100),
+lab16(#     price DECIMAL(10,2) CHECK (price > 0)          -- business rule: price must be positive
+lab16(# );
+CREATE TABLE
+lab16=#
+lab16=# CREATE TABLE logs (
+lab16(#     id      SERIAL PRIMARY KEY,
+lab16(#     message TEXT
+lab16(# );
+CREATE TABLE
+lab16=# \dt
+             List of tables
+ Schema |    Name     | Type  |  Owner
+--------+-------------+-------+----------
+ public | accounts    | table | postgres
+ public | customers   | table | postgres
+ public | inventory   | table | postgres
+ public | logs        | table | postgres
+ public | order_items | table | postgres
+ public | orders      | table | postgres
+ public | products    | table | postgres
+(7 rows)
+
+
+lab16=#
+lab16=# -- ===== 1. BEGIN, COMMIT, ROLLBACK =====
+lab16=# -- From lab. Three ways to start a transaction
+lab16=# BEGIN;
+BEGIN
+lab16=*# COMMIT;
+COMMIT
+lab16=# BEGIN TRANSACTION;
+BEGIN
+lab16=*# COMMIT;
+COMMIT
+lab16=# START TRANSACTION;
+START TRANSACTION
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- From lab. COMMIT: both updates are saved
+lab16=# BEGIN;
+BEGIN
+lab16=*# UPDATE accounts SET balance = balance - 100 WHERE account_id = 1;
+UPDATE 1
+lab16=*# UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+UPDATE 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1900.00
+          2 | Timur  | 1600.00
+          3 | Aizada |   50.00
+(3 rows)
+
+
+lab16=#
+lab16=# -- From lab. ROLLBACK: both updates are undone
+lab16=# BEGIN;
+BEGIN
+lab16=*# UPDATE accounts SET balance = balance - 100 WHERE account_id = 1;
+UPDATE 1
+lab16=*# UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+UPDATE 1
+lab16=*# SELECT * FROM accounts ORDER BY account_id;     -- inside the transaction: changed
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1800.00
+          2 | Timur  | 1700.00
+          3 | Aizada |   50.00
+(3 rows)
+
+
+lab16=*# ROLLBACK;
+ROLLBACK
+lab16=# SELECT * FROM accounts ORDER BY account_id;     -- after ROLLBACK: back to 1900 / 1600
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1900.00
+          2 | Timur  | 1600.00
+          3 | Aizada |   50.00
+(3 rows)
+
+
+lab16=#
+lab16=# -- From lab. Transfer 500 from account 1 to account 2
+lab16=# BEGIN;
+BEGIN
+lab16=*# SELECT balance FROM accounts WHERE account_id = 1;
+ balance
+---------
+ 1900.00
+(1 row)
+
+
+lab16=*# UPDATE accounts SET balance = balance - 500 WHERE account_id = 1;
+UPDATE 1
+lab16=*# UPDATE accounts SET balance = balance + 500 WHERE account_id = 2;
+UPDATE 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+          3 | Aizada |   50.00
+(3 rows)
+
+
+lab16=#
+lab16=# -- ===== 2. ATOMICITY =====
+lab16=# -- From lab. Order + item + stock update as one unit
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (1, 250.00);
+INSERT 0 1
+lab16=*# INSERT INTO order_items (order_id, product_id, quantity) VALUES (1, 101, 2);
+INSERT 0 1
+lab16=*# UPDATE inventory SET stock = stock - 2 WHERE product_id = 101;
+UPDATE 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM orders;
+ id | customer_id | total
+----+-------------+--------
+  1 |           1 | 250.00
+(1 row)
+
+
+lab16=# SELECT * FROM order_items;
+ order_id | product_id | quantity
+----------+------------+----------
+        1 |        101 |        2
+(1 row)
+
+
+lab16=# SELECT * FROM inventory ORDER BY product_id;
+ product_id |       name        | stock
+------------+-------------------+-------
+        101 | Big Panda Noodles |    48
+        102 | Rice 5kg          |    10
+        103 | Headphones        |     1
+(3 rows)
+
+
+lab16=#
+lab16=# -- My test: the same transaction, but the last step fails (only 1 headphone in stock)
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (1, 2500.00);
+INSERT 0 1
+lab16=*# INSERT INTO order_items (order_id, product_id, quantity) VALUES (currval('orders_id_seq'), 103, 2);
+INSERT 0 1
+lab16=*# -- EXPECTED ERROR: stock would become -1 (CHECK stock >= 0)
+lab16=*# UPDATE inventory SET stock = stock - 2 WHERE product_id = 103;
+ОШИБКА:  новая строка в отношении "inventory" нарушает ограничение-проверку "inventory_stock_check"
+DETAIL:  Ошибочная строка содержит (103, Headphones, -1).
+lab16=!# -- EXPECTED ERROR: after an error the transaction is aborted, nothing else works
+lab16=!# SELECT * FROM orders;
+ОШИБКА:  текущая транзакция прервана, команды до конца блока транзакции игнорируются
+lab16=!# ROLLBACK;
+ROLLBACK
+lab16=# -- The order and the order item from this transaction are NOT saved
+lab16=# SELECT * FROM orders;
+ id | customer_id | total
+----+-------------+--------
+  1 |           1 | 250.00
+(1 row)
+
+
+lab16=# SELECT * FROM order_items;
+ order_id | product_id | quantity
+----------+------------+----------
+        1 |        101 |        2
+(1 row)
+
+
+lab16=# SELECT * FROM inventory ORDER BY product_id;
+ product_id |       name        | stock
+------------+-------------------+-------
+        101 | Big Panda Noodles |    48
+        102 | Rice 5kg          |    10
+        103 | Headphones        |     1
+(3 rows)
+
+
+lab16=#
+lab16=# -- ===== 3. CONSISTENCY =====
+lab16=# -- From lab. New customer and his order with LASTVAL()
+lab16=# -- EXPECTED ERROR: LASTVAL() returns the last value of ANY sequence. The default
+lab16=# -- nextval('orders_id_seq') of the new order runs first, so LASTVAL() gives the
+lab16=# -- new ORDER id (3), not the customer id (2) -> foreign key violation
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO customers (name, email) VALUES ('John Doe', 'john@email.com');
+INSERT 0 1
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (LASTVAL(), 100.00);
+ОШИБКА:  INSERT или UPDATE в таблице "orders" нарушает ограничение внешнего ключа "orders_customer_id_fkey"
+DETAIL:  Ключ (customer_id)=(3) отсутствует в таблице "customers".
+lab16=!# COMMIT;
+ROLLBACK
+lab16=# -- COMMIT of a failed transaction works as ROLLBACK: John Doe was not saved either
+lab16=# SELECT * FROM customers;
+ customer_id |   name   |     email
+-------------+----------+----------------
+           1 | Dana Kim | dana@email.com
+(1 row)
+
+
+lab16=# SELECT * FROM orders;
+ id | customer_id | total
+----+-------------+--------
+  1 |           1 | 250.00
+(1 row)
+
+
+lab16=#
+lab16=# -- My fix: use currval() of the customers sequence
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO customers (name, email) VALUES ('John Doe', 'john@email.com');
+INSERT 0 1
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (currval('customers_customer_id_seq'), 100.00);
+INSERT 0 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM customers;
+ customer_id |   name   |     email
+-------------+----------+----------------
+           1 | Dana Kim | dana@email.com
+           3 | John Doe | john@email.com
+(2 rows)
+
+
+lab16=# SELECT * FROM orders;
+ id | customer_id | total
+----+-------------+--------
+  1 |           1 | 250.00
+  4 |           3 | 100.00
+(2 rows)
+
+
+lab16=#
+lab16=# -- My test: consistency rule broken -> transaction is rejected
+lab16=# BEGIN;
+BEGIN
+lab16=*# -- EXPECTED ERROR: customer 99 does not exist (foreign key)
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (99, 100.00);
+ОШИБКА:  INSERT или UPDATE в таблице "orders" нарушает ограничение внешнего ключа "orders_customer_id_fkey"
+DETAIL:  Ключ (customer_id)=(99) отсутствует в таблице "customers".
+lab16=!# ROLLBACK;
+ROLLBACK
+lab16=#
+lab16=# -- ===== 4. ISOLATION LEVELS =====
+lab16=# -- From lab. READ UNCOMMITTED (in PostgreSQL it works like READ COMMITTED)
+lab16=# BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+BEGIN
+lab16=*# SHOW transaction_isolation;
+ transaction_isolation
+-----------------------
+ read uncommitted
+(1 row)
+
+
+lab16=*# SELECT * FROM accounts;
+ account_id | owner  | balance
+------------+--------+---------
+          3 | Aizada |   50.00
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+(3 rows)
+
+
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- From lab. READ COMMITTED (default)
+lab16=# BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN
+lab16=*# SHOW transaction_isolation;
+ transaction_isolation
+-----------------------
+ read committed
+(1 row)
+
+
+lab16=*# SELECT * FROM accounts WHERE balance > 1000;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+(2 rows)
+
+
+lab16=*# SELECT * FROM accounts WHERE balance > 1000;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+(2 rows)
+
+
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- From lab. REPEATABLE READ
+lab16=# BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+lab16=*# SHOW transaction_isolation;
+ transaction_isolation
+-----------------------
+ repeatable read
+(1 row)
+
+
+lab16=*# SELECT * FROM accounts WHERE balance > 1000;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+(2 rows)
+
+
+lab16=*# SELECT * FROM accounts WHERE balance > 1000;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+(2 rows)
+
+
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- From lab. SERIALIZABLE: 5% interest for everyone
+lab16=# BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+lab16=*# SHOW transaction_isolation;
+ transaction_isolation
+-----------------------
+ serializable
+(1 row)
+
+
+lab16=*# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1400.00
+          2 | Timur  | 2100.00
+          3 | Aizada |   50.00
+(3 rows)
+
+
+lab16=*# UPDATE accounts SET balance = balance * 1.05;
+UPDATE 3
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1470.00
+          2 | Timur  | 2205.00
+          3 | Aizada |   52.50
+(3 rows)
+
+
+lab16=#
+lab16=# -- From lab. SET TRANSACTION works only inside a transaction block
+lab16=# SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+ПРЕДУПРЕЖДЕНИЕ:  SET TRANSACTION может выполняться только внутри блоков транзакций
+SET
+lab16=# BEGIN;
+BEGIN
+lab16=*# SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SET
+lab16=*# SHOW transaction_isolation;
+ transaction_isolation
+-----------------------
+ repeatable read
+(1 row)
+
+
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- Session level for all next transactions, then back to default
+lab16=# SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SET
+lab16=# SHOW default_transaction_isolation;
+ default_transaction_isolation
+-------------------------------
+ repeatable read
+(1 row)
+
+
+lab16=# SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SET
+lab16=# SHOW default_transaction_isolation;
+ default_transaction_isolation
+-------------------------------
+ read committed
+(1 row)
+
+
+lab16=#
+lab16=# -- ===== 5. DURABILITY =====
+lab16=# -- Committed data stays after reconnecting to the database
+lab16=# \c postgres
+You are now connected to database "postgres" as user "postgres".
+postgres=# \c lab16
+You are now connected to database "lab16" as user "postgres".
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1470.00
+          2 | Timur  | 2205.00
+          3 | Aizada |   52.50
+(3 rows)
+
+
+lab16=#
+lab16=# -- ===== 6. SAVEPOINTS =====
+lab16=# -- From lab. Rollback to a savepoint
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO customers (name, email) VALUES ('Alice', 'alice@email.com');
+INSERT 0 1
+lab16=*# SAVEPOINT after_customer_insert;
+SAVEPOINT
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (1, 500.00);
+INSERT 0 1
+lab16=*# ROLLBACK TO SAVEPOINT after_customer_insert;
+ROLLBACK
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (1, 300.00);
+INSERT 0 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM customers;
+ customer_id |   name   |      email
+-------------+----------+-----------------
+           1 | Dana Kim | dana@email.com
+           3 | John Doe | john@email.com
+           4 | Alice    | alice@email.com
+(3 rows)
+
+
+lab16=# SELECT * FROM orders;
+ id | customer_id | total
+----+-------------+--------
+  1 |           1 | 250.00
+  4 |           3 | 100.00
+  7 |           1 | 300.00
+(3 rows)
+
+
+lab16=#
+lab16=# -- From lab. Multiple savepoints (here the invalid price is stopped by CHECK)
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO products (name, price) VALUES ('Laptop', 999.99);
+INSERT 0 1
+lab16=*# SAVEPOINT sp1;
+SAVEPOINT
+lab16=*# INSERT INTO products (name, price) VALUES ('Mouse', 25.99);
+INSERT 0 1
+lab16=*# SAVEPOINT sp2;
+SAVEPOINT
+lab16=*# -- EXPECTED ERROR: price must be positive
+lab16=*# INSERT INTO products (name, price) VALUES ('Invalid Product', -50.00);
+ОШИБКА:  новая строка в отношении "products" нарушает ограничение-проверку "products_price_check"
+DETAIL:  Ошибочная строка содержит (3, Invalid Product, -50.00).
+lab16=!# ROLLBACK TO SAVEPOINT sp2;
+ROLLBACK
+lab16=*# INSERT INTO products (name, price) VALUES ('Keyboard', 79.99);
+INSERT 0 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM products;
+ id |   name   | price
+----+----------+--------
+  1 | Laptop   | 999.99
+  2 | Mouse    |  25.99
+  4 | Keyboard |  79.99
+(3 rows)
+
+
+lab16=#
+lab16=# -- From lab. Releasing a savepoint
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO logs (message) VALUES ('Starting process');
+INSERT 0 1
+lab16=*# SAVEPOINT process_start;
+SAVEPOINT
+lab16=*# INSERT INTO logs (message) VALUES ('Process completed');
+INSERT 0 1
+lab16=*# RELEASE SAVEPOINT process_start;
+RELEASE
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM logs;
+ id |      message
+----+-------------------
+  1 | Starting process
+  2 | Process completed
+(2 rows)
+
+
+lab16=#
+lab16=# -- EXPECTED ERROR: a released savepoint does not exist anymore
+lab16=# BEGIN;
+BEGIN
+lab16=*# SAVEPOINT s1;
+SAVEPOINT
+lab16=*# RELEASE SAVEPOINT s1;
+RELEASE
+lab16=*# ROLLBACK TO SAVEPOINT s1;
+ОШИБКА:  точка сохранения "s1" не существует
+lab16=!# ROLLBACK;
+ROLLBACK
+lab16=#
+lab16=# -- ===== 7. Best practices =====
+lab16=# -- From lab. Short and focused transaction
+lab16=# BEGIN;
+BEGIN
+lab16=*# UPDATE inventory SET stock = stock - 1 WHERE product_id = 101;
+UPDATE 1
+lab16=*# INSERT INTO order_items (order_id, product_id, quantity) VALUES (1, 101, 1);
+INSERT 0 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM inventory ORDER BY product_id;
+ product_id |       name        | stock
+------------+-------------------+-------
+        101 | Big Panda Noodles |    47
+        102 | Rice 5kg          |    10
+        103 | Headphones        |     1
+(3 rows)
+
+
+lab16=# SELECT * FROM order_items;
+ order_id | product_id | quantity
+----------+------------+----------
+        1 |        101 |        2
+        1 |        101 |        1
+(2 rows)
+
+
+lab16=#
+lab16=# -- From lab. Error handling in a DO block, exactly as written in the lab
+lab16=# -- EXPECTED ERROR: "insufficient_funds EXCEPTION" is Oracle syntax, PL/pgSQL does not have it
+lab16=# BEGIN;
+BEGIN
+lab16=*# DO $$
+lab16$*# DECLARE
+lab16$*#     insufficient_funds EXCEPTION;
+lab16$*#     current_balance DECIMAL;
+lab16$*# BEGIN
+lab16$*#     SELECT balance INTO current_balance FROM accounts WHERE account_id = 1;
+lab16$*#     IF current_balance < 100 THEN
+lab16$*#         RAISE insufficient_funds;
+lab16$*#     END IF;
+lab16$*#     UPDATE accounts SET balance = balance - 100 WHERE account_id = 1;
+lab16$*#     UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+lab16$*# EXCEPTION
+lab16$*#     WHEN insufficient_funds THEN
+lab16$*#         RAISE NOTICE 'Transaction failed: Insufficient funds';
+lab16$*#         ROLLBACK;
+lab16$*# END $$;
+ОШИБКА:  тип "exception" не существует
+LINE 3:     insufficient_funds EXCEPTION;
+                               ^
+lab16=!# ROLLBACK;
+ROLLBACK
+lab16=#
+lab16=# -- My fix: RAISE EXCEPTION with a message; the EXCEPTION block itself undoes
+lab16=# -- the changes of the block, so ROLLBACK inside is not needed (and not allowed there)
+lab16=# -- Account 1 has enough money -> transfer is done
+lab16=# BEGIN;
+BEGIN
+lab16=*# DO $$
+lab16$*# DECLARE
+lab16$*#     current_balance DECIMAL;
+lab16$*# BEGIN
+lab16$*#     SELECT balance INTO current_balance FROM accounts WHERE account_id = 1;
+lab16$*#     IF current_balance < 100 THEN
+lab16$*#         RAISE EXCEPTION 'insufficient_funds';
+lab16$*#     END IF;
+lab16$*#     UPDATE accounts SET balance = balance - 100 WHERE account_id = 1;
+lab16$*#     UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+lab16$*#     RAISE NOTICE 'Transfer from account 1 done';
+lab16$*# EXCEPTION
+lab16$*#     WHEN raise_exception THEN
+lab16$*#         RAISE NOTICE 'Transaction failed: Insufficient funds';
+lab16$*# END $$;
+ЗАМЕЧАНИЕ:  Transfer from account 1 done
+DO
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1370.00
+          2 | Timur  | 2305.00
+          3 | Aizada |   52.50
+(3 rows)
+
+
+lab16=#
+lab16=# -- Account 3 has only 52.50 -> the exception branch runs, balances do not change
+lab16=# BEGIN;
+BEGIN
+lab16=*# DO $$
+lab16$*# DECLARE
+lab16$*#     current_balance DECIMAL;
+lab16$*# BEGIN
+lab16$*#     SELECT balance INTO current_balance FROM accounts WHERE account_id = 3;
+lab16$*#     IF current_balance < 100 THEN
+lab16$*#         RAISE EXCEPTION 'insufficient_funds';
+lab16$*#     END IF;
+lab16$*#     UPDATE accounts SET balance = balance - 100 WHERE account_id = 3;
+lab16$*#     UPDATE accounts SET balance = balance + 100 WHERE account_id = 2;
+lab16$*# EXCEPTION
+lab16$*#     WHEN raise_exception THEN
+lab16$*#         RAISE NOTICE 'Transaction failed: Insufficient funds';
+lab16$*# END $$;
+ЗАМЕЧАНИЕ:  Transaction failed: Insufficient funds
+DO
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM accounts ORDER BY account_id;
+ account_id | owner  | balance
+------------+--------+---------
+          1 | Nigora | 1370.00
+          2 | Timur  | 2305.00
+          3 | Aizada |   52.50
+(3 rows)
+
+
+lab16=#
+lab16=# -- From lab. Higher isolation for financial operations, READ COMMITTED for reports
+lab16=# BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+lab16=*# UPDATE accounts SET balance = balance - 50 WHERE account_id = 2;
+UPDATE 1
+lab16=*# UPDATE accounts SET balance = balance + 50 WHERE account_id = 3;
+UPDATE 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;
+BEGIN
+lab16=*# SELECT COUNT(*) AS accounts, SUM(balance) AS total_money FROM accounts;
+ accounts | total_money
+----------+-------------
+        3 |     3727.50
+(1 row)
+
+
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- From lab. Savepoints for complex operations
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (1, 1000.00);
+INSERT 0 1
+lab16=*# SAVEPOINT before_items;
+SAVEPOINT
+lab16=*# INSERT INTO order_items (order_id, product_id, quantity)
+lab16-*# VALUES (currval('orders_id_seq'), 101, 2);
+INSERT 0 1
+lab16=*# INSERT INTO order_items (order_id, product_id, quantity)
+lab16-*# VALUES (currval('orders_id_seq'), 102, 1);
+INSERT 0 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM orders;
+ id | customer_id |  total
+----+-------------+---------
+  1 |           1 |  250.00
+  4 |           3 |  100.00
+  7 |           1 |  300.00
+  8 |           1 | 1000.00
+(4 rows)
+
+
+lab16=# SELECT * FROM order_items;
+ order_id | product_id | quantity
+----------+------------+----------
+        1 |        101 |        2
+        1 |        101 |        1
+        8 |        101 |        2
+        8 |        102 |        1
+(4 rows)
+
+
+lab16=#
+lab16=# -- From lab. Monitor blocking locks, exactly as written in the lab
+lab16=# -- EXPECTED ERROR: the lab query uses blocking_activity but never joins it
+lab16=# SELECT
+lab16-#     blocked_locks.pid AS blocked_pid,
+lab16-#     blocked_activity.usename AS blocked_user,
+lab16-#     blocking_locks.pid AS blocking_pid,
+lab16-#     blocking_activity.usename AS blocking_user,
+lab16-#     blocked_activity.query AS blocked_statement
+lab16-# FROM pg_catalog.pg_locks blocked_locks
+lab16-# JOIN pg_catalog.pg_stat_activity blocked_activity
+lab16-#     ON blocked_activity.pid = blocked_locks.pid
+lab16-# JOIN pg_catalog.pg_locks blocking_locks
+lab16-#     ON blocking_locks.locktype = blocked_locks.locktype
+lab16-# WHERE NOT blocked_locks.granted;
+ОШИБКА:  отсутствует элемент FROM для таблицы "blocking_activity"
+LINE 5:     blocking_activity.usename AS blocking_user,
+            ^
+lab16=#
+lab16=# -- My fix: add the missing JOIN (0 rows = nobody is blocked)
+lab16=# SELECT
+lab16-#     blocked_locks.pid AS blocked_pid,
+lab16-#     blocked_activity.usename AS blocked_user,
+lab16-#     blocking_locks.pid AS blocking_pid,
+lab16-#     blocking_activity.usename AS blocking_user,
+lab16-#     blocked_activity.query AS blocked_statement
+lab16-# FROM pg_catalog.pg_locks blocked_locks
+lab16-# JOIN pg_catalog.pg_stat_activity blocked_activity
+lab16-#     ON blocked_activity.pid = blocked_locks.pid
+lab16-# JOIN pg_catalog.pg_locks blocking_locks
+lab16-#     ON blocking_locks.locktype = blocked_locks.locktype
+lab16-# JOIN pg_catalog.pg_stat_activity blocking_activity
+lab16-#     ON blocking_activity.pid = blocking_locks.pid
+lab16-# WHERE NOT blocked_locks.granted;
+ blocked_pid | blocked_user | blocking_pid | blocking_user | blocked_statement
+-------------+--------------+--------------+---------------+-------------------
+(0 rows)
+
+
+lab16=#
+lab16=# -- Locks of my own open transaction
+lab16=# BEGIN;
+BEGIN
+lab16=*# UPDATE inventory SET stock = stock WHERE product_id = 101;
+UPDATE 1
+lab16=*# SELECT locktype, relation::regclass, mode, granted
+lab16-*# FROM pg_locks
+lab16-*# WHERE pid = pg_backend_pid() AND relation IS NOT NULL;
+ locktype |    relation    |       mode       | granted
+----------+----------------+------------------+---------
+ relation | pg_locks       | AccessShareLock  | t
+ relation | inventory_pkey | RowExclusiveLock | t
+ relation | inventory      | RowExclusiveLock | t
+(3 rows)
+
+
+lab16=*# COMMIT;
+COMMIT
+lab16=#
+lab16=# -- From lab. Explicit transaction for related operations
+lab16=# CREATE TABLE audit_log (
+lab16(#     id        SERIAL PRIMARY KEY,
+lab16(#     action    VARCHAR(50),
+lab16(#     timestamp TIMESTAMP
+lab16(# );
+CREATE TABLE
+lab16=# CREATE TABLE users (
+lab16(#     id    SERIAL PRIMARY KEY,
+lab16(#     name  VARCHAR(100),
+lab16(#     email VARCHAR(100) UNIQUE
+lab16(# );
+CREATE TABLE
+lab16=# CREATE TABLE user_preferences (
+lab16(#     user_id INTEGER REFERENCES users(id),
+lab16(#     theme   VARCHAR(20)
+lab16(# );
+CREATE TABLE
+lab16=#
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO audit_log (action, timestamp) VALUES ('user_creation', NOW());
+INSERT 0 1
+lab16=*# INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+INSERT 0 1
+lab16=*# INSERT INTO user_preferences (user_id, theme) VALUES (currval('users_id_seq'), 'dark');
+INSERT 0 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT action FROM audit_log;
+    action
+---------------
+ user_creation
+(1 row)
+
+
+lab16=# SELECT * FROM users;
+ id |   name   |      email
+----+----------+------------------
+  1 | John Doe | john@example.com
+(1 row)
+
+
+lab16=# SELECT * FROM user_preferences;
+ user_id | theme
+---------+-------
+       1 | dark
+(1 row)
+
+
+lab16=#
+lab16=# -- From lab. Avoid autocommit for related operations
+lab16=# INSERT INTO audit_log (action, timestamp) VALUES ('user_creation', NOW());
+INSERT 0 1
+lab16=# -- EXPECTED ERROR: the same email again (UNIQUE)
+lab16=# INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+ОШИБКА:  повторяющееся значение ключа нарушает ограничение уникальности "users_email_key"
+DETAIL:  Ключ "(email)=(john@example.com)" уже существует.
+lab16=# -- The audit entry was saved anyway, but no user was created -> wrong data
+lab16=# SELECT id, action FROM audit_log;
+ id |    action
+----+---------------
+  1 | user_creation
+  2 | user_creation
+(2 rows)
+
+
+lab16=# SELECT * FROM users;
+ id |   name   |      email
+----+----------+------------------
+  1 | John Doe | john@example.com
+(1 row)
+
+
+lab16=#
+lab16=# -- ===== MY EXAMPLES (retail) =====
+lab16=# -- My example 1: checkout of a shopping cart with a savepoint for each item.
+lab16=# -- An item that is out of stock is skipped, the rest of the cart is sold.
+lab16=# SELECT * FROM inventory ORDER BY product_id;
+ product_id |       name        | stock
+------------+-------------------+-------
+        101 | Big Panda Noodles |    47
+        102 | Rice 5kg          |    10
+        103 | Headphones        |     1
+(3 rows)
+
+
+lab16=# BEGIN;
+BEGIN
+lab16=*# INSERT INTO orders (customer_id, total) VALUES (1, 0);
+INSERT 0 1
+lab16=*# SAVEPOINT item_1;
+SAVEPOINT
+lab16=*# UPDATE inventory SET stock = stock - 3 WHERE product_id = 101;
+UPDATE 1
+lab16=*# INSERT INTO order_items VALUES (currval('orders_id_seq'), 101, 3);
+INSERT 0 1
+lab16=*# SAVEPOINT item_2;
+SAVEPOINT
+lab16=*# -- EXPECTED ERROR: only 1 headphone in stock
+lab16=*# UPDATE inventory SET stock = stock - 5 WHERE product_id = 103;
+ОШИБКА:  новая строка в отношении "inventory" нарушает ограничение-проверку "inventory_stock_check"
+DETAIL:  Ошибочная строка содержит (103, Headphones, -4).
+lab16=!# ROLLBACK TO SAVEPOINT item_2;
+ROLLBACK
+lab16=*# SAVEPOINT item_3;
+SAVEPOINT
+lab16=*# UPDATE inventory SET stock = stock - 1 WHERE product_id = 102;
+UPDATE 1
+lab16=*# INSERT INTO order_items VALUES (currval('orders_id_seq'), 102, 1);
+INSERT 0 1
+lab16=*# -- order total = 3 noodles x 90 + 1 rice x 560
+lab16=*# UPDATE orders SET total = 3 * 90 + 1 * 560 WHERE id = currval('orders_id_seq');
+UPDATE 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM orders ORDER BY id;
+ id | customer_id |  total
+----+-------------+---------
+  1 |           1 |  250.00
+  4 |           3 |  100.00
+  7 |           1 |  300.00
+  8 |           1 | 1000.00
+  9 |           1 |  830.00
+(5 rows)
+
+
+lab16=# SELECT * FROM order_items;
+ order_id | product_id | quantity
+----------+------------+----------
+        1 |        101 |        2
+        1 |        101 |        1
+        8 |        101 |        2
+        8 |        102 |        1
+        9 |        101 |        3
+        9 |        102 |        1
+(6 rows)
+
+
+lab16=# SELECT * FROM inventory ORDER BY product_id;
+ product_id |       name        | stock
+------------+-------------------+-------
+        101 | Big Panda Noodles |    44
+        102 | Rice 5kg          |     9
+        103 | Headphones        |     1
+(3 rows)
+
+
+lab16=#
+lab16=# -- My example 2: stock transfer between two stores, all-or-nothing.
+lab16=# CREATE TABLE store_stock (
+lab16(#     store      VARCHAR(50),
+lab16(#     product_id INTEGER REFERENCES inventory(product_id),
+lab16(#     stock      INTEGER CHECK (stock >= 0),
+lab16(#     PRIMARY KEY (store, product_id)
+lab16(# );
+CREATE TABLE
+lab16=# INSERT INTO store_stock VALUES
+lab16-#     ('Bishkek', 101, 40), ('Almaty', 101, 5),
+lab16-#     ('Bishkek', 102, 2),  ('Almaty', 102, 8);
+INSERT 0 4
+lab16=# SELECT * FROM store_stock ORDER BY product_id, store;
+  store  | product_id | stock
+---------+------------+-------
+ Almaty  |        101 |     5
+ Bishkek |        101 |    40
+ Almaty  |        102 |     8
+ Bishkek |        102 |     2
+(4 rows)
+
+
+lab16=#
+lab16=# -- Transfer 20 noodles Bishkek -> Almaty: works
+lab16=# BEGIN;
+BEGIN
+lab16=*# UPDATE store_stock SET stock = stock - 20 WHERE store = 'Bishkek' AND product_id = 101;
+UPDATE 1
+lab16=*# UPDATE store_stock SET stock = stock + 20 WHERE store = 'Almaty'  AND product_id = 101;
+UPDATE 1
+lab16=*# COMMIT;
+COMMIT
+lab16=# SELECT * FROM store_stock ORDER BY product_id, store;
+  store  | product_id | stock
+---------+------------+-------
+ Almaty  |        101 |    25
+ Bishkek |        101 |    20
+ Almaty  |        102 |     8
+ Bishkek |        102 |     2
+(4 rows)
+
+
+lab16=#
+lab16=# -- Transfer 6 rice Bishkek -> Almaty: Almaty is updated first, then Bishkek fails
+lab16=# BEGIN;
+BEGIN
+lab16=*# UPDATE store_stock SET stock = stock + 6 WHERE store = 'Almaty'  AND product_id = 102;
+UPDATE 1
+lab16=*# SELECT * FROM store_stock WHERE product_id = 102 ORDER BY store;
+  store  | product_id | stock
+---------+------------+-------
+ Almaty  |        102 |    14
+ Bishkek |        102 |     2
+(2 rows)
+
+
+lab16=*# -- EXPECTED ERROR: Bishkek has only 2
+lab16=*# UPDATE store_stock SET stock = stock - 6 WHERE store = 'Bishkek' AND product_id = 102;
+ОШИБКА:  новая строка в отношении "store_stock" нарушает ограничение-проверку "store_stock_stock_check"
+DETAIL:  Ошибочная строка содержит (Bishkek, 102, -4).
+lab16=!# ROLLBACK;
+ROLLBACK
+lab16=# -- Almaty did NOT get 6 extra bags: the stock did not appear out of nowhere
+lab16=# SELECT * FROM store_stock ORDER BY product_id, store;
+  store  | product_id | stock
+---------+------------+-------
+ Almaty  |        101 |    25
+ Bishkek |        101 |    20
+ Almaty  |        102 |     8
+ Bishkek |        102 |     2
+(4 rows)
+
+
+lab16=#
+lab16=# -- All tables used in this lab
+lab16=# \dt
+               List of tables
+ Schema |       Name       | Type  |  Owner
+--------+------------------+-------+----------
+ public | accounts         | table | postgres
+ public | audit_log        | table | postgres
+ public | customers        | table | postgres
+ public | inventory        | table | postgres
+ public | logs             | table | postgres
+ public | order_items      | table | postgres
+ public | orders           | table | postgres
+ public | products         | table | postgres
+ public | store_stock      | table | postgres
+ public | user_preferences | table | postgres
+ public | users            | table | postgres
+(11 rows)
+
+
+lab16=#
+lab16=# \q
