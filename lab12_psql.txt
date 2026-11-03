@@ -1,0 +1,633 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# CREATE DATABASE lab12;
+CREATE DATABASE
+postgres=# \c lab12
+You are now connected to database "lab12" as user "postgres".
+lab12=#
+lab12=# -- Sample tables for the lab (the lab uses employees, products, customers, users, sales)
+lab12=# DROP TABLE IF EXISTS sales, employees, products, customers, users CASCADE;
+ЗАМЕЧАНИЕ:  таблица "sales" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "employees" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "products" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "customers" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "users" не существует, пропускается
+DROP TABLE
+lab12=#
+lab12=# CREATE TABLE employees (
+lab12(#     id            SERIAL PRIMARY KEY,
+lab12(#     name          VARCHAR(100) NOT NULL,
+lab12(#     department    VARCHAR(50),
+lab12(#     department_id INTEGER,
+lab12(#     salary        DECIMAL(10,2),
+lab12(#     phone         VARCHAR(20)                -- can be NULL, used for IS NULL
+lab12(# );
+CREATE TABLE
+lab12=# \d employees
+                                       Table "public.employees"
+    Column     |          Type          | Collation | Nullable |                Default
+---------------+------------------------+-----------+----------+---------------------------------------
+ id            | integer                |           | not null | nextval('employees_id_seq'::regclass)
+ name          | character varying(100) |           | not null |
+ department    | character varying(50)  |           |          |
+ department_id | integer                |           |          |
+ salary        | numeric(10,2)          |           |          |
+ phone         | character varying(20)  |           |          |
+Indexes:
+    "employees_pkey" PRIMARY KEY, btree (id)
+
+
+lab12=#
+lab12=# INSERT INTO employees (name, department, department_id, salary, phone) VALUES
+lab12-#     ('Aibek Toktomushev', 'Sales',       3, 55000.00,  '0555111222'),
+lab12-#     ('Bermet Asanova',    'Sales',       3, 68000.00,  NULL),
+lab12-#     ('Alina Kim',         'Engineering', 5, 120000.00, '0700333444'),
+lab12-#     ('Timur Bekov',       'Engineering', 5, 72000.00,  '0777555666'),
+lab12-#     ('Dana Usenova',      'Engineering', 5, 95000.00,  NULL),
+lab12-#     ('Nurlan Osmonov',    'Marketing',   7, 61000.00,  '0312999000'),
+lab12-#     ('Zarina Ismailova',  'HR',          9, 48000.00,  '0555777888');
+INSERT 0 7
+lab12=# SELECT * FROM employees;
+ id |       name        | department  | department_id |  salary   |   phone
+----+-------------------+-------------+---------------+-----------+------------
+  1 | Aibek Toktomushev | Sales       |             3 |  55000.00 | 0555111222
+  2 | Bermet Asanova    | Sales       |             3 |  68000.00 |
+  3 | Alina Kim         | Engineering |             5 | 120000.00 | 0700333444
+  4 | Timur Bekov       | Engineering |             5 |  72000.00 | 0777555666
+  5 | Dana Usenova      | Engineering |             5 |  95000.00 |
+  6 | Nurlan Osmonov    | Marketing   |             7 |  61000.00 | 0312999000
+  7 | Zarina Ismailova  | HR          |             9 |  48000.00 | 0555777888
+(7 rows)
+
+
+lab12=#
+lab12=# CREATE TABLE products (
+lab12(#     product_id   SERIAL PRIMARY KEY,
+lab12(#     product_name VARCHAR(100) NOT NULL,
+lab12(#     price        DECIMAL(10,2)
+lab12(# );
+CREATE TABLE
+lab12=# INSERT INTO products (product_name, price) VALUES
+lab12-#     ('Strawberry',  25.00),
+lab12-#     ('Blueberry',   45.00),
+lab12-#     ('Raspberry',   60.00),
+lab12-#     ('Green Apple', 12.50),
+lab12-#     ('Milk 1L',     18.00),
+lab12-#     ('Coffee Beans', 50.00);
+INSERT 0 6
+lab12=# SELECT * FROM products;
+ product_id | product_name | price
+------------+--------------+-------
+          1 | Strawberry   | 25.00
+          2 | Blueberry    | 45.00
+          3 | Raspberry    | 60.00
+          4 | Green Apple  | 12.50
+          5 | Milk 1L      | 18.00
+          6 | Coffee Beans | 50.00
+(6 rows)
+
+
+lab12=#
+lab12=# CREATE TABLE customers (
+lab12(#     customer_id   SERIAL PRIMARY KEY,
+lab12(#     customer_name VARCHAR(100) NOT NULL
+lab12(# );
+CREATE TABLE
+lab12=# INSERT INTO customers (customer_name) VALUES
+lab12-#     ('Brad'), ('Brandon'), ('Bakyt'), ('Aizada'), ('bratislav');
+INSERT 0 5
+lab12=# SELECT * FROM customers;
+ customer_id | customer_name
+-------------+---------------
+           1 | Brad
+           2 | Brandon
+           3 | Bakyt
+           4 | Aizada
+           5 | bratislav
+(5 rows)
+
+
+lab12=#
+lab12=# CREATE TABLE users (
+lab12(#     user_id SERIAL PRIMARY KEY,
+lab12(#     email   VARCHAR(100)
+lab12(# );
+CREATE TABLE
+lab12=# INSERT INTO users (email) VALUES
+lab12-#     ('nigora@gmail.com'),
+lab12-#     ('TIMUR@GMAIL.COM'),
+lab12-#     ('aizada@auca.kg'),
+lab12-#     ('dana@mail.ru'),
+lab12-#     ('broken-email@'),
+lab12-#     ('no_at_sign.com');
+INSERT 0 6
+lab12=# SELECT * FROM users;
+ user_id |      email
+---------+------------------
+       1 | nigora@gmail.com
+       2 | TIMUR@GMAIL.COM
+       3 | aizada@auca.kg
+       4 | dana@mail.ru
+       5 | broken-email@
+       6 | no_at_sign.com
+(6 rows)
+
+
+lab12=#
+lab12=# CREATE TABLE sales (
+lab12(#     sale_id     SERIAL PRIMARY KEY,
+lab12(#     employee_id INTEGER REFERENCES employees(id),
+lab12(#     amount      DECIMAL(10,2),
+lab12(#     sale_date   DATE
+lab12(# );
+CREATE TABLE
+lab12=# INSERT INTO sales (employee_id, amount, sale_date) VALUES
+lab12-#     (1, 1500.00, '2026-10-01'),
+lab12-#     (1,  400.00, '2026-10-03'),
+lab12-#     (2,  900.00, '2026-10-02'),
+lab12-#     (2, 2300.00, '2026-10-05'),
+lab12-#     (6,  700.00, '2026-10-04');
+INSERT 0 5
+lab12=# SELECT * FROM sales;
+ sale_id | employee_id | amount  | sale_date
+---------+-------------+---------+------------
+       1 |           1 | 1500.00 | 2026-10-01
+       2 |           1 |  400.00 | 2026-10-03
+       3 |           2 |  900.00 | 2026-10-02
+       4 |           2 | 2300.00 | 2026-10-05
+       5 |           6 |  700.00 | 2026-10-04
+(5 rows)
+
+
+lab12=#
+lab12=# -- ===== 1. SELECT statements =====
+lab12=# -- From lab. Select all columns
+lab12=# SELECT * FROM employees;
+ id |       name        | department  | department_id |  salary   |   phone
+----+-------------------+-------------+---------------+-----------+------------
+  1 | Aibek Toktomushev | Sales       |             3 |  55000.00 | 0555111222
+  2 | Bermet Asanova    | Sales       |             3 |  68000.00 |
+  3 | Alina Kim         | Engineering |             5 | 120000.00 | 0700333444
+  4 | Timur Bekov       | Engineering |             5 |  72000.00 | 0777555666
+  5 | Dana Usenova      | Engineering |             5 |  95000.00 |
+  6 | Nurlan Osmonov    | Marketing   |             7 |  61000.00 | 0312999000
+  7 | Zarina Ismailova  | HR          |             9 |  48000.00 | 0555777888
+(7 rows)
+
+
+lab12=#
+lab12=# -- From lab. Select specific columns
+lab12=# SELECT name, department FROM employees;
+       name        | department
+-------------------+-------------
+ Aibek Toktomushev | Sales
+ Bermet Asanova    | Sales
+ Alina Kim         | Engineering
+ Timur Bekov       | Engineering
+ Dana Usenova      | Engineering
+ Nurlan Osmonov    | Marketing
+ Zarina Ismailova  | HR
+(7 rows)
+
+
+lab12=#
+lab12=# -- From lab. Calculation on the fly with an alias (10% bonus)
+lab12=# SELECT name, salary, salary * 0.10 AS potential_bonus
+lab12-# FROM employees;
+       name        |  salary   | potential_bonus
+-------------------+-----------+-----------------
+ Aibek Toktomushev |  55000.00 |       5500.0000
+ Bermet Asanova    |  68000.00 |       6800.0000
+ Alina Kim         | 120000.00 |      12000.0000
+ Timur Bekov       |  72000.00 |       7200.0000
+ Dana Usenova      |  95000.00 |       9500.0000
+ Nurlan Osmonov    |  61000.00 |       6100.0000
+ Zarina Ismailova  |  48000.00 |       4800.0000
+(7 rows)
+
+
+lab12=#
+lab12=# -- ===== 2. WHERE clause conditions =====
+lab12=# -- From lab. Employees in Sales
+lab12=# SELECT name, salary
+lab12-# FROM employees
+lab12-# WHERE department = 'Sales';
+       name        |  salary
+-------------------+----------
+ Aibek Toktomushev | 55000.00
+ Bermet Asanova    | 68000.00
+(2 rows)
+
+
+lab12=#
+lab12=# -- From lab. Salary > 75000 AND Engineering
+lab12=# SELECT name
+lab12-# FROM employees
+lab12-# WHERE salary > 75000 AND department = 'Engineering';
+     name
+--------------
+ Alina Kim
+ Dana Usenova
+(2 rows)
+
+
+lab12=#
+lab12=# -- From lab. Price between 20 and 50 (inclusive)
+lab12=# SELECT product_name, price
+lab12-# FROM products
+lab12-# WHERE price BETWEEN 20 AND 50;
+ product_name | price
+--------------+-------
+ Strawberry   | 25.00
+ Blueberry    | 45.00
+ Coffee Beans | 50.00
+(3 rows)
+
+
+lab12=#
+lab12=# -- Testing the other operators from the list
+lab12=# -- <> (not equal)
+lab12=# SELECT name, department FROM employees WHERE department <> 'Engineering';
+       name        | department
+-------------------+------------
+ Aibek Toktomushev | Sales
+ Bermet Asanova    | Sales
+ Nurlan Osmonov    | Marketing
+ Zarina Ismailova  | HR
+(4 rows)
+
+
+lab12=# -- OR
+lab12=# SELECT name, department FROM employees WHERE department = 'HR' OR department = 'Marketing';
+       name       | department
+------------------+------------
+ Nurlan Osmonov   | Marketing
+ Zarina Ismailova | HR
+(2 rows)
+
+
+lab12=# -- NOT
+lab12=# SELECT name, department FROM employees WHERE NOT department = 'Sales';
+       name       | department
+------------------+-------------
+ Alina Kim        | Engineering
+ Timur Bekov      | Engineering
+ Dana Usenova     | Engineering
+ Nurlan Osmonov   | Marketing
+ Zarina Ismailova | HR
+(5 rows)
+
+
+lab12=# -- IS NULL / IS NOT NULL
+lab12=# SELECT name, phone FROM employees WHERE phone IS NULL;
+      name      | phone
+----------------+-------
+ Bermet Asanova |
+ Dana Usenova   |
+(2 rows)
+
+
+lab12=# SELECT name, phone FROM employees WHERE phone IS NOT NULL;
+       name        |   phone
+-------------------+------------
+ Aibek Toktomushev | 0555111222
+ Alina Kim         | 0700333444
+ Timur Bekov       | 0777555666
+ Nurlan Osmonov    | 0312999000
+ Zarina Ismailova  | 0555777888
+(5 rows)
+
+
+lab12=# -- = NULL does not work: NULL is not equal to anything, so 0 rows
+lab12=# SELECT name, phone FROM employees WHERE phone = NULL;
+ name | phone
+------+-------
+(0 rows)
+
+
+lab12=#
+lab12=# -- ===== 3. Pattern matching (LIKE, ILIKE) =====
+lab12=# -- From lab. Names starting with 'Bra'
+lab12=# SELECT customer_name
+lab12-# FROM customers
+lab12-# WHERE customer_name LIKE 'Bra%';
+ customer_name
+---------------
+ Brad
+ Brandon
+(2 rows)
+
+
+lab12=#
+lab12=# -- LIKE is case-sensitive, ILIKE also finds 'bratislav'
+lab12=# SELECT customer_name
+lab12-# FROM customers
+lab12-# WHERE customer_name ILIKE 'bra%';
+ customer_name
+---------------
+ Brad
+ Brandon
+ bratislav
+(3 rows)
+
+
+lab12=#
+lab12=# -- From lab. Products ending with 'berry'
+lab12=# SELECT product_name
+lab12-# FROM products
+lab12-# WHERE product_name LIKE '%berry';
+ product_name
+--------------
+ Strawberry
+ Blueberry
+ Raspberry
+(3 rows)
+
+
+lab12=#
+lab12=# -- From lab. Gmail addresses, case-insensitive
+lab12=# SELECT email
+lab12-# FROM users
+lab12-# WHERE email ILIKE '%@gmail.com';
+      email
+------------------
+ nigora@gmail.com
+ TIMUR@GMAIL.COM
+(2 rows)
+
+
+lab12=#
+lab12=# -- _ means exactly one character: 5-letter names starting with 'B'
+lab12=# SELECT customer_name
+lab12-# FROM customers
+lab12-# WHERE customer_name LIKE 'B____';
+ customer_name
+---------------
+ Bakyt
+(1 row)
+
+
+lab12=#
+lab12=# -- EXPECTED ERROR: LIKE works on text, price is a number
+lab12=# SELECT product_name FROM products WHERE price LIKE '2%';
+ОШИБКА:  оператор не существует: numeric ~~ unknown
+LINE 1: SELECT product_name FROM products WHERE price LIKE '2%';
+                                                      ^
+ПОДСКАЗКА:  Оператор с данными именем и типами аргументов не найден. Возможно, следует добавить явные приведения типов.
+lab12=# -- fix: cast the number to text
+lab12=# SELECT product_name, price FROM products WHERE price::TEXT LIKE '2%';
+ product_name | price
+--------------+-------
+ Strawberry   | 25.00
+(1 row)
+
+
+lab12=#
+lab12=# -- ===== 4. Regular expressions =====
+lab12=# -- From lab. Names starting with 'A' or 'B'
+lab12=# SELECT name
+lab12-# FROM employees
+lab12-# WHERE name ~ '^[AB]';
+       name
+-------------------
+ Aibek Toktomushev
+ Bermet Asanova
+ Alina Kim
+(3 rows)
+
+
+lab12=#
+lab12=# -- From lab. Simple valid-email check (case-insensitive)
+lab12=# SELECT email
+lab12-# FROM users
+lab12-# WHERE email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$';
+      email
+------------------
+ nigora@gmail.com
+ TIMUR@GMAIL.COM
+ aizada@auca.kg
+ dana@mail.ru
+(4 rows)
+
+
+lab12=#
+lab12=# -- !~* : the opposite, invalid emails
+lab12=# SELECT email
+lab12-# FROM users
+lab12-# WHERE email !~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$';
+     email
+----------------
+ broken-email@
+ no_at_sign.com
+(2 rows)
+
+
+lab12=#
+lab12=# -- !~ : names that do NOT start with A or B
+lab12=# SELECT name
+lab12-# FROM employees
+lab12-# WHERE name !~ '^[AB]';
+       name
+------------------
+ Timur Bekov
+ Dana Usenova
+ Nurlan Osmonov
+ Zarina Ismailova
+(4 rows)
+
+
+lab12=#
+lab12=# -- ===== 5. IN and EXISTS =====
+lab12=# -- From lab. IN with a static list
+lab12=# SELECT name, department
+lab12-# FROM employees
+lab12-# WHERE department_id IN (3, 5, 7);
+       name        | department
+-------------------+-------------
+ Aibek Toktomushev | Sales
+ Bermet Asanova    | Sales
+ Alina Kim         | Engineering
+ Timur Bekov       | Engineering
+ Dana Usenova      | Engineering
+ Nurlan Osmonov    | Marketing
+(6 rows)
+
+
+lab12=#
+lab12=# -- From lab. IN with a subquery
+lab12=# SELECT name
+lab12-# FROM employees
+lab12-# WHERE id IN (SELECT employee_id FROM sales WHERE amount > 1000);
+       name
+-------------------
+ Aibek Toktomushev
+ Bermet Asanova
+(2 rows)
+
+
+lab12=#
+lab12=# -- From lab. EXISTS (same result as the IN query above)
+lab12=# SELECT name
+lab12-# FROM employees e
+lab12-# WHERE EXISTS (
+lab12(#     SELECT 1
+lab12(#     FROM sales s
+lab12(#     WHERE s.employee_id = e.id AND s.amount > 1000
+lab12(# );
+       name
+-------------------
+ Aibek Toktomushev
+ Bermet Asanova
+(2 rows)
+
+
+lab12=#
+lab12=# -- NOT EXISTS: employees with no sales at all
+lab12=# SELECT name, department
+lab12-# FROM employees e
+lab12-# WHERE NOT EXISTS (
+lab12(#     SELECT 1 FROM sales s WHERE s.employee_id = e.id
+lab12(# );
+       name       | department
+------------------+-------------
+ Dana Usenova     | Engineering
+ Timur Bekov      | Engineering
+ Alina Kim        | Engineering
+ Zarina Ismailova | HR
+(4 rows)
+
+
+lab12=#
+lab12=# -- ===== 6. CASE statements =====
+lab12=# -- From lab. Employee level by salary
+lab12=# SELECT name, salary,
+lab12-#     CASE
+lab12-#         WHEN salary > 100000 THEN 'Senior'
+lab12-#         WHEN salary BETWEEN 60000 AND 100000 THEN 'Mid-Level'
+lab12-#         ELSE 'Junior'
+lab12-#     END AS employee_level
+lab12-# FROM employees;
+       name        |  salary   | employee_level
+-------------------+-----------+----------------
+ Aibek Toktomushev |  55000.00 | Junior
+ Bermet Asanova    |  68000.00 | Mid-Level
+ Alina Kim         | 120000.00 | Senior
+ Timur Bekov       |  72000.00 | Mid-Level
+ Dana Usenova      |  95000.00 | Mid-Level
+ Nurlan Osmonov    |  61000.00 | Mid-Level
+ Zarina Ismailova  |  48000.00 | Junior
+(7 rows)
+
+
+lab12=#
+lab12=# -- ===== 7. Common Table Expressions (CTEs) =====
+lab12=# -- From lab. Employees who earn more than their department average
+lab12=# WITH department_averages AS (
+lab12(#     SELECT
+lab12(#         department,
+lab12(#         AVG(salary) AS avg_salary
+lab12(#     FROM employees
+lab12(#     GROUP BY department
+lab12(# )
+lab12-# SELECT
+lab12-#     e.name,
+lab12-#     e.salary,
+lab12-#     e.department,
+lab12-#     da.avg_salary
+lab12-# FROM employees e
+lab12-# JOIN department_averages da ON e.department = da.department
+lab12-# WHERE e.salary > da.avg_salary;
+      name      |  salary   | department  |     avg_salary
+----------------+-----------+-------------+--------------------
+ Bermet Asanova |  68000.00 | Sales       | 61500.000000000000
+ Alina Kim      | 120000.00 | Engineering | 95666.666666666667
+(2 rows)
+
+
+lab12=#
+lab12=# -- ===== MY EXAMPLES (retail) =====
+lab12=# -- My example 1: price segments for the shelf (CASE + ILIKE)
+lab12=# -- Retail analysts group products into price segments to plan promotions.
+lab12=# SELECT product_name, price,
+lab12-#     CASE
+lab12-#         WHEN price >= 45 THEN 'Premium'
+lab12-#         WHEN price >= 20 THEN 'Standard'
+lab12-#         ELSE 'Economy'
+lab12-#     END AS price_segment,
+lab12-#     CASE
+lab12-#         WHEN product_name ILIKE '%berry' THEN 'Berries'
+lab12-#         ELSE 'Other'
+lab12-#     END AS product_group
+lab12-# FROM products
+lab12-# ORDER BY price DESC;
+ product_name | price | price_segment | product_group
+--------------+-------+---------------+---------------
+ Raspberry    | 60.00 | Premium       | Berries
+ Coffee Beans | 50.00 | Premium       | Other
+ Blueberry    | 45.00 | Premium       | Berries
+ Strawberry   | 25.00 | Standard      | Berries
+ Milk 1L      | 18.00 | Economy       | Other
+ Green Apple  | 12.50 | Economy       | Other
+(6 rows)
+
+
+lab12=#
+lab12=# -- My example 2: sales performance of each seller (CTE + CASE + LEFT JOIN)
+lab12=# -- Total sales per employee, compared with the team average.
+lab12=# WITH seller_totals AS (
+lab12(#     SELECT e.name,
+lab12(#            COALESCE(SUM(s.amount), 0) AS total_sales
+lab12(#     FROM employees e
+lab12(#     LEFT JOIN sales s ON s.employee_id = e.id
+lab12(#     WHERE e.department IN ('Sales', 'Marketing')
+lab12(#     GROUP BY e.name
+lab12(# ),
+lab12-# team_average AS (
+lab12(#     SELECT AVG(total_sales) AS avg_sales FROM seller_totals
+lab12(# )
+lab12-# SELECT st.name,
+lab12-#        st.total_sales,
+lab12-#        ROUND(ta.avg_sales, 2) AS team_avg,
+lab12-#        CASE
+lab12-#            WHEN st.total_sales > ta.avg_sales THEN 'Above target'
+lab12-#            ELSE 'Below target'
+lab12-#        END AS performance
+lab12-# FROM seller_totals st
+lab12-# CROSS JOIN team_average ta
+lab12-# ORDER BY st.total_sales DESC;
+       name        | total_sales | team_avg | performance
+-------------------+-------------+----------+--------------
+ Bermet Asanova    |     3200.00 |  1933.33 | Above target
+ Aibek Toktomushev |     1900.00 |  1933.33 | Below target
+ Nurlan Osmonov    |      700.00 |  1933.33 | Below target
+(3 rows)
+
+
+lab12=#
+lab12=# -- All tables used in this lab
+lab12=# \dt
+            List of tables
+ Schema |   Name    | Type  |  Owner
+--------+-----------+-------+----------
+ public | customers | table | postgres
+ public | employees | table | postgres
+ public | products  | table | postgres
+ public | sales     | table | postgres
+ public | users     | table | postgres
+(5 rows)
+
+
+lab12=#
+lab12=# \q
