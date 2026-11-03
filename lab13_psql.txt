@@ -1,0 +1,748 @@
+Server [localhost]:
+Database [postgres]:
+Port [5432]:
+Username [postgres]:
+Password for user postgres:
+
+psql (18.6)
+WARNING: Console code page (866) differs from Windows code page (1251)
+         8-bit characters might not work correctly. See psql reference
+         page "Notes for Windows users" for details.
+Type "help" for help.
+
+
+
+postgres=# CREATE DATABASE lab13;
+CREATE DATABASE
+postgres=# \c lab13
+You are now connected to database "lab13" as user "postgres".
+lab13=#
+lab13=# -- Sample tables for the lab
+lab13=# DROP TABLE IF EXISTS employee_skills, product_reviews, sales, sales_data, products, employees CASCADE;
+ЗАМЕЧАНИЕ:  таблица "employee_skills" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "product_reviews" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "sales" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "sales_data" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "products" не существует, пропускается
+ЗАМЕЧАНИЕ:  таблица "employees" не существует, пропускается
+DROP TABLE
+lab13=#
+lab13=# CREATE TABLE employees (
+lab13(#     employee_id      SERIAL PRIMARY KEY,
+lab13(#     first_name       VARCHAR(50) NOT NULL,
+lab13(#     last_name        VARCHAR(50) NOT NULL,
+lab13(#     department       VARCHAR(50),
+lab13(#     salary           DECIMAL(10,2),
+lab13(#     age              INTEGER,
+lab13(#     hire_date        DATE,
+lab13(#     email            VARCHAR(100),       -- some NULL
+lab13(#     bonus            DECIMAL(10,2),      -- some NULL
+lab13(#     experience_years INTEGER
+lab13(# );
+CREATE TABLE
+lab13=# \d employees
+                                             Table "public.employees"
+      Column      |          Type          | Collation | Nullable |                    Default
+------------------+------------------------+-----------+----------+------------------------------------------------
+ employee_id      | integer                |           | not null | nextval('employees_employee_id_seq'::regclass)
+ first_name       | character varying(50)  |           | not null |
+ last_name        | character varying(50)  |           | not null |
+ department       | character varying(50)  |           |          |
+ salary           | numeric(10,2)          |           |          |
+ age              | integer                |           |          |
+ hire_date        | date                   |           |          |
+ email            | character varying(100) |           |          |
+ bonus            | numeric(10,2)          |           |          |
+ experience_years | integer                |           |          |
+Indexes:
+    "employees_pkey" PRIMARY KEY, btree (employee_id)
+
+
+lab13=#
+lab13=# INSERT INTO employees (first_name, last_name, department, salary, age, hire_date, email, bonus, experience_years) VALUES
+lab13-#     ('Aibek',  'Toktomushev', 'Sales',       45000, 26, '2023-03-01', 'aibek@shop.kg',  2000, 2),
+lab13-#     ('Bermet', 'Asanova',     'Sales',       52000, 31, '2021-06-15', 'bermet@shop.kg', 3000, 5),
+lab13-#     ('Dana',   'Kim',         'Sales',       48000, 24, '2024-02-10', NULL,             NULL, 1),
+lab13-#     ('Erlan',  'Sadykov',     'Sales',       61000, 38, '2019-09-01', 'erlan@shop.kg',  4500, 10),
+lab13-#     ('Gulnara','Abdieva',     'Sales',       39000, 22, '2025-01-20', NULL,             NULL, 0),
+lab13-#     ('Kanat',  'Usupov',      'Sales',       57000, 45, '2018-04-12', 'kanat@shop.kg',  4000, 15),
+lab13-#     ('Alina',  'Kim',         'Engineering', 120000, 34, '2020-11-03', 'alina@shop.kg', 8000, 9),
+lab13-#     ('Timur',  'Bekov',       'Engineering', 85000, 29, '2023-07-01', 'timur@shop.kg',  NULL, 4),
+lab13-#     ('Nurlan', 'Osmonov',     'Engineering', 98000, 52, '2015-05-25', 'nurlan@shop.kg', 6000, 25),
+lab13-#     ('Zarina', 'Ismailova',   'HR',          47000, 41, '2022-08-08', 'zarina@shop.kg', 1500, 12),
+lab13-#     ('Saule',  'Nurova',      'HR',          43000, 27, '2024-09-16', NULL,             NULL, 2),
+lab13-#     ('Maksat', 'Jumaev',      'Marketing',   64000, 33, '2022-01-11', 'maksat@shop.kg', 2500, 7);
+INSERT 0 12
+lab13=# SELECT * FROM employees;
+ employee_id | first_name |  last_name  | department  |  salary   | age | hire_date  |     email      |  bonus  | experience_years
+-------------+------------+-------------+-------------+-----------+-----+------------+----------------+---------+------------------
+           1 | Aibek      | Toktomushev | Sales       |  45000.00 |  26 | 2023-03-01 | aibek@shop.kg  | 2000.00 |                2
+           2 | Bermet     | Asanova     | Sales       |  52000.00 |  31 | 2021-06-15 | bermet@shop.kg | 3000.00 |                5
+           3 | Dana       | Kim         | Sales       |  48000.00 |  24 | 2024-02-10 |                |         |                1
+           4 | Erlan      | Sadykov     | Sales       |  61000.00 |  38 | 2019-09-01 | erlan@shop.kg  | 4500.00 |               10
+           5 | Gulnara    | Abdieva     | Sales       |  39000.00 |  22 | 2025-01-20 |                |         |                0
+           6 | Kanat      | Usupov      | Sales       |  57000.00 |  45 | 2018-04-12 | kanat@shop.kg  | 4000.00 |               15
+           7 | Alina      | Kim         | Engineering | 120000.00 |  34 | 2020-11-03 | alina@shop.kg  | 8000.00 |                9
+           8 | Timur      | Bekov       | Engineering |  85000.00 |  29 | 2023-07-01 | timur@shop.kg  |         |                4
+           9 | Nurlan     | Osmonov     | Engineering |  98000.00 |  52 | 2015-05-25 | nurlan@shop.kg | 6000.00 |               25
+          10 | Zarina     | Ismailova   | HR          |  47000.00 |  41 | 2022-08-08 | zarina@shop.kg | 1500.00 |               12
+          11 | Saule      | Nurova      | HR          |  43000.00 |  27 | 2024-09-16 |                |         |                2
+          12 | Maksat     | Jumaev      | Marketing   |  64000.00 |  33 | 2022-01-11 | maksat@shop.kg | 2500.00 |                7
+(12 rows)
+
+
+lab13=#
+lab13=# CREATE TABLE sales_data (
+lab13(#     id           SERIAL PRIMARY KEY,
+lab13(#     department   VARCHAR(50),
+lab13(#     sales_amount DECIMAL(10,2)
+lab13(# );
+CREATE TABLE
+lab13=# INSERT INTO sales_data (department, sales_amount) VALUES
+lab13-#     ('Grocery', 12000), ('Grocery', 8500), ('Grocery', 15300),
+lab13-#     ('Electronics', 42000), ('Electronics', 37500),
+lab13-#     ('Clothing', 9800), ('Clothing', 11200);
+INSERT 0 7
+lab13=# SELECT * FROM sales_data;
+ id | department  | sales_amount
+----+-------------+--------------
+  1 | Grocery     |     12000.00
+  2 | Grocery     |      8500.00
+  3 | Grocery     |     15300.00
+  4 | Electronics |     42000.00
+  5 | Electronics |     37500.00
+  6 | Clothing    |      9800.00
+  7 | Clothing    |     11200.00
+(7 rows)
+
+
+lab13=#
+lab13=# CREATE TABLE employee_skills (
+lab13(#     employee_id INTEGER REFERENCES employees(employee_id),
+lab13(#     skill_name  VARCHAR(50),
+lab13(#     PRIMARY KEY (employee_id, skill_name)
+lab13(# );
+CREATE TABLE
+lab13=# INSERT INTO employee_skills VALUES
+lab13-#     (7, 'SQL'), (7, 'Python'), (7, 'Docker'),
+lab13-#     (8, 'SQL'), (8, 'Java'),
+lab13-#     (12, 'Excel'), (12, 'SQL'), (12, 'Power BI');
+INSERT 0 8
+lab13=# SELECT * FROM employee_skills;
+ employee_id | skill_name
+-------------+------------
+           7 | SQL
+           7 | Python
+           7 | Docker
+           8 | SQL
+           8 | Java
+          12 | Excel
+          12 | SQL
+          12 | Power BI
+(8 rows)
+
+
+lab13=#
+lab13=# CREATE TABLE products (
+lab13(#     product_id   SERIAL PRIMARY KEY,
+lab13(#     product_name VARCHAR(100),
+lab13(#     category     VARCHAR(50),
+lab13(#     price        DECIMAL(10,2)
+lab13(# );
+CREATE TABLE
+lab13=# INSERT INTO products (product_name, category, price) VALUES
+lab13-#     ('Big Panda Noodles', 'Grocery',     90.00),
+lab13-#     ('Milk 1L',           'Grocery',     85.00),
+lab13-#     ('Rice 5kg',          'Grocery',    560.00),
+lab13-#     ('Headphones',        'Electronics', 2500.00),
+lab13-#     ('Power Bank',        'Electronics', 1800.00),
+lab13-#     ('T-shirt',           'Clothing',    750.00);
+INSERT 0 6
+lab13=# SELECT * FROM products;
+ product_id |   product_name    |  category   |  price
+------------+-------------------+-------------+---------
+          1 | Big Panda Noodles | Grocery     |   90.00
+          2 | Milk 1L           | Grocery     |   85.00
+          3 | Rice 5kg          | Grocery     |  560.00
+          4 | Headphones        | Electronics | 2500.00
+          5 | Power Bank        | Electronics | 1800.00
+          6 | T-shirt           | Clothing    |  750.00
+(6 rows)
+
+
+lab13=#
+lab13=# CREATE TABLE sales (
+lab13(#     sale_id    SERIAL PRIMARY KEY,
+lab13(#     store      VARCHAR(50),
+lab13(#     product_id INTEGER REFERENCES products(product_id),
+lab13(#     sale_date  DATE,
+lab13(#     amount     DECIMAL(10,2)
+lab13(# );
+CREATE TABLE
+lab13=# INSERT INTO sales (store, product_id, sale_date, amount) VALUES
+lab13-#     ('Bishkek',  1, '2025-02-14', 1800.00),
+lab13-#     ('Bishkek',  4, '2025-05-03', 5000.00),
+lab13-#     ('Almaty',   3, '2025-05-20', 2240.00),
+lab13-#     ('Almaty',   5, '2025-08-11', 3600.00),
+lab13-#     ('Tashkent', 2, '2025-11-09',  850.00),
+lab13-#     ('Bishkek',  6, '2025-12-24', 2250.00),
+lab13-#     ('Almaty',   4, '2026-01-15', 7500.00),
+lab13-#     ('Tashkent', 1, '2026-02-02',  900.00),
+lab13-#     ('Bishkek',  3, '2026-04-18', 1680.00),
+lab13-#     ('Tashkent', 5, '2026-06-30', 5400.00),
+lab13-#     ('Bishkek',  2, '2026-07-07',  510.00),
+lab13-#     ('Almaty',   6, '2026-09-21', 1500.00);
+INSERT 0 12
+lab13=# SELECT * FROM sales;
+ sale_id |  store   | product_id | sale_date  | amount
+---------+----------+------------+------------+---------
+       1 | Bishkek  |          1 | 2025-02-14 | 1800.00
+       2 | Bishkek  |          4 | 2025-05-03 | 5000.00
+       3 | Almaty   |          3 | 2025-05-20 | 2240.00
+       4 | Almaty   |          5 | 2025-08-11 | 3600.00
+       5 | Tashkent |          2 | 2025-11-09 |  850.00
+       6 | Bishkek  |          6 | 2025-12-24 | 2250.00
+       7 | Almaty   |          4 | 2026-01-15 | 7500.00
+       8 | Tashkent |          1 | 2026-02-02 |  900.00
+       9 | Bishkek  |          3 | 2026-04-18 | 1680.00
+      10 | Tashkent |          5 | 2026-06-30 | 5400.00
+      11 | Bishkek  |          2 | 2026-07-07 |  510.00
+      12 | Almaty   |          6 | 2026-09-21 | 1500.00
+(12 rows)
+
+
+lab13=#
+lab13=# CREATE TABLE product_reviews (
+lab13(#     review_id  SERIAL PRIMARY KEY,
+lab13(#     product_id INTEGER REFERENCES products(product_id),
+lab13(#     rating     INTEGER CHECK (rating BETWEEN 1 AND 5)
+lab13(# );
+CREATE TABLE
+lab13=# INSERT INTO product_reviews (product_id, rating) VALUES
+lab13-#     (1,5),(1,5),(1,4),(1,5),(1,4),(1,5),(1,5),(1,4),(1,5),(1,5),(1,4),   -- 11 reviews
+lab13-#     (4,5),(4,4),(4,5),                                                    -- only 3 reviews
+lab13-#     (5,3),(5,4),(5,3),(5,2),(5,4),(5,3),(5,4),(5,3),(5,4),(5,3);          -- 10 reviews, low rating
+INSERT 0 24
+lab13=# SELECT product_id, COUNT(*) FROM product_reviews GROUP BY product_id ORDER BY product_id;
+ product_id | count
+------------+-------
+          1 |    11
+          4 |     3
+          5 |    10
+(3 rows)
+
+
+lab13=#
+lab13=# -- ===== 1. COUNT() =====
+lab13=# -- From lab. Count total number of employees
+lab13=# SELECT COUNT(*) AS total_employees
+lab13-# FROM employees;
+ total_employees
+-----------------
+              12
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. Count employees with non-NULL email
+lab13=# SELECT COUNT(email) AS employees_with_email
+lab13-# FROM employees;
+ employees_with_email
+----------------------
+                    9
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. Count unique departments
+lab13=# SELECT COUNT(DISTINCT department) AS unique_departments
+lab13-# FROM employees;
+ unique_departments
+--------------------
+                  4
+(1 row)
+
+
+lab13=#
+lab13=# -- ===== 2. SUM() =====
+lab13=# -- From lab. Total salary expenditure
+lab13=# SELECT SUM(salary) AS total_salaries
+lab13-# FROM employees;
+ total_salaries
+----------------
+      759000.00
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. Total sales by department
+lab13=# SELECT department, SUM(sales_amount) AS total_sales
+lab13-# FROM sales_data
+lab13-# GROUP BY department;
+ department  | total_sales
+-------------+-------------
+ Electronics |    79500.00
+ Grocery     |    35800.00
+ Clothing    |    21000.00
+(3 rows)
+
+
+lab13=#
+lab13=# -- ===== 3. AVG() =====
+lab13=# -- From lab. Average salary
+lab13=# SELECT AVG(salary) AS average_salary
+lab13-# FROM employees;
+   average_salary
+--------------------
+ 63250.000000000000
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. Average age by department
+lab13=# SELECT department, AVG(age) AS avg_age
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  |       avg_age
+-------------+---------------------
+ Marketing   | 33.0000000000000000
+ Engineering | 38.3333333333333333
+ Sales       | 31.0000000000000000
+ HR          | 34.0000000000000000
+(4 rows)
+
+
+lab13=#
+lab13=# -- ===== 4. MAX() and MIN() =====
+lab13=# -- From lab. Highest and lowest salaries
+lab13=# SELECT
+lab13-#     MAX(salary) AS highest_salary,
+lab13-#     MIN(salary) AS lowest_salary
+lab13-# FROM employees;
+ highest_salary | lowest_salary
+----------------+---------------
+      120000.00 |      39000.00
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. Most recent hire date by department
+lab13=# SELECT department, MAX(hire_date) AS latest_hire
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  | latest_hire
+-------------+-------------
+ Marketing   | 2022-01-11
+ Engineering | 2023-07-01
+ Sales       | 2025-01-20
+ HR          | 2024-09-16
+(4 rows)
+
+
+lab13=#
+lab13=# -- ===== 5. STRING_AGG() =====
+lab13=# -- From lab. Employees of each department as one string
+lab13=# SELECT department, STRING_AGG(first_name, ', ') AS employee_names
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  |               employee_names
+-------------+--------------------------------------------
+ Marketing   | Maksat
+ Engineering | Alina, Timur, Nurlan
+ Sales       | Aibek, Bermet, Dana, Erlan, Gulnara, Kanat
+ HR          | Zarina, Saule
+(4 rows)
+
+
+lab13=#
+lab13=# -- From lab. Skills per employee, ordered alphabetically
+lab13=# SELECT employee_id, STRING_AGG(skill_name, ', ' ORDER BY skill_name) AS skills
+lab13-# FROM employee_skills
+lab13-# GROUP BY employee_id;
+ employee_id |        skills
+-------------+----------------------
+           7 | Docker, Python, SQL
+           8 | Java, SQL
+          12 | Excel, Power BI, SQL
+(3 rows)
+
+
+lab13=#
+lab13=# -- ===== 6. ARRAY_AGG() =====
+lab13=# -- From lab. Array of salaries in each department
+lab13=# SELECT department, ARRAY_AGG(salary) AS salary_array
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  |                      salary_array
+-------------+---------------------------------------------------------
+ Marketing   | {64000.00}
+ Engineering | {120000.00,85000.00,98000.00}
+ Sales       | {45000.00,52000.00,48000.00,61000.00,39000.00,57000.00}
+ HR          | {47000.00,43000.00}
+(4 rows)
+
+
+lab13=#
+lab13=# -- From lab. Array of names ordered by last name
+lab13=# SELECT department, ARRAY_AGG(first_name ORDER BY last_name) AS employees
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  |                employees
+-------------+-----------------------------------------
+ Engineering | {Timur,Alina,Nurlan}
+ HR          | {Zarina,Saule}
+ Marketing   | {Maksat}
+ Sales       | {Gulnara,Bermet,Dana,Erlan,Aibek,Kanat}
+(4 rows)
+
+
+lab13=#
+lab13=# -- ===== 7. Statistical functions =====
+lab13=# -- From lab. Standard deviation and variance
+lab13=# SELECT
+lab13-#     department,
+lab13-#     STDDEV(salary) AS salary_std_dev,
+lab13-#     VARIANCE(salary) AS salary_variance
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  |  salary_std_dev   |    salary_variance
+-------------+-------------------+-----------------------
+ Marketing   |                   |
+ Engineering |    17691.80601295 |    313000000.00000000
+ Sales       | 8041.558721209879 | 64666666.666666666667
+ HR          | 2828.427124746190 |  8000000.000000000000
+(4 rows)
+
+
+lab13=#
+lab13=# -- From lab. Correlation between experience and salary
+lab13=# SELECT CORR(experience_years, salary) AS experience_salary_correlation
+lab13-# FROM employees;
+ experience_salary_correlation
+-------------------------------
+            0.5108803674581299
+(1 row)
+
+
+lab13=#
+lab13=# -- ===== 8. GROUP BY =====
+lab13=# -- From lab. Summary by product category
+lab13=# SELECT
+lab13-#     category,
+lab13-#     COUNT(*) AS number_of_products,
+lab13-#     SUM(price) AS total_value,
+lab13-#     AVG(price) AS average_price
+lab13-# FROM products
+lab13-# GROUP BY category;
+  category   | number_of_products | total_value |     average_price
+-------------+--------------------+-------------+-----------------------
+ Electronics |                  2 |     4300.00 | 2150.0000000000000000
+ Grocery     |                  3 |      735.00 |  245.0000000000000000
+ Clothing    |                  1 |      750.00 |  750.0000000000000000
+(3 rows)
+
+
+lab13=#
+lab13=# -- From lab. Grouping by year and quarter
+lab13=# SELECT
+lab13-#     EXTRACT(YEAR FROM sale_date) AS year,
+lab13-#     EXTRACT(QUARTER FROM sale_date) AS quarter,
+lab13-#     COUNT(*) AS total_sales,
+lab13-#     SUM(amount) AS total_revenue
+lab13-# FROM sales
+lab13-# GROUP BY EXTRACT(YEAR FROM sale_date), EXTRACT(QUARTER FROM sale_date)
+lab13-# ORDER BY year, quarter;
+ year | quarter | total_sales | total_revenue
+------+---------+-------------+---------------
+ 2025 |       1 |           1 |       1800.00
+ 2025 |       2 |           2 |       7240.00
+ 2025 |       3 |           1 |       3600.00
+ 2025 |       4 |           2 |       3100.00
+ 2026 |       1 |           2 |       8400.00
+ 2026 |       2 |           2 |       7080.00
+ 2026 |       3 |           2 |       2010.00
+(7 rows)
+
+
+lab13=#
+lab13=# -- From lab. Grouping by a calculated value (age group)
+lab13=# SELECT
+lab13-#     CASE
+lab13-#         WHEN age < 30 THEN 'Under 30'
+lab13-#         WHEN age BETWEEN 30 AND 50 THEN '30-50'
+lab13-#         ELSE 'Over 50'
+lab13-#     END AS age_group,
+lab13-#     COUNT(*) AS employee_count,
+lab13-#     AVG(salary) AS avg_salary
+lab13-# FROM employees
+lab13-# GROUP BY
+lab13-#     CASE
+lab13-#         WHEN age < 30 THEN 'Under 30'
+lab13-#         WHEN age BETWEEN 30 AND 50 THEN '30-50'
+lab13-#         ELSE 'Over 50'
+lab13-#     END;
+ age_group | employee_count |     avg_salary
+-----------+----------------+--------------------
+ Under 30  |              5 | 52000.000000000000
+ Over 50   |              1 | 98000.000000000000
+ 30-50     |              6 | 66833.333333333333
+(3 rows)
+
+
+lab13=#
+lab13=# -- EXPECTED ERROR: first_name is not in GROUP BY and not inside an aggregate
+lab13=# SELECT department, first_name, COUNT(*)
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ОШИБКА:  столбец "employees.first_name" должен фигурировать в предложении GROUP BY или использоваться в агрегатной функции
+LINE 1: SELECT department, first_name, COUNT(*)
+                           ^
+lab13=#
+lab13=# -- ===== 9. HAVING =====
+lab13=# -- From lab. Departments with more than 5 employees
+lab13=# SELECT
+lab13-#     department,
+lab13-#     COUNT(*) AS employee_count
+lab13-# FROM employees
+lab13-# GROUP BY department
+lab13-# HAVING COUNT(*) > 5;
+ department | employee_count
+------------+----------------
+ Sales      |              6
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. Products with average rating above 4.0 and at least 10 reviews
+lab13=# SELECT
+lab13-#     product_id,
+lab13-#     AVG(rating) AS avg_rating,
+lab13-#     COUNT(*) AS review_count
+lab13-# FROM product_reviews
+lab13-# GROUP BY product_id
+lab13-# HAVING AVG(rating) > 4.0 AND COUNT(*) >= 10;
+ product_id |     avg_rating     | review_count
+------------+--------------------+--------------
+          1 | 4.6363636363636364 |           11
+(1 row)
+
+
+lab13=#
+lab13=# -- EXPECTED ERROR: aggregate functions are not allowed in WHERE (use HAVING)
+lab13=# SELECT department, COUNT(*)
+lab13-# FROM employees
+lab13-# WHERE COUNT(*) > 5
+lab13-# GROUP BY department;
+ОШИБКА:  агрегатные функции нельзя применять в конструкции WHERE
+LINE 3: WHERE COUNT(*) > 5
+              ^
+lab13=#
+lab13=# -- WHERE before grouping + HAVING after grouping in one query
+lab13=# SELECT department, COUNT(*) AS young_employees
+lab13-# FROM employees
+lab13-# WHERE age < 35
+lab13-# GROUP BY department
+lab13-# HAVING COUNT(*) >= 2;
+ department  | young_employees
+-------------+-----------------
+ Engineering |               2
+ Sales       |               4
+(2 rows)
+
+
+lab13=#
+lab13=# -- ===== 10. Window functions vs aggregate functions =====
+lab13=# -- From lab. Aggregate: one row per department
+lab13=# SELECT department, AVG(salary) AS dept_avg_salary
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  |   dept_avg_salary
+-------------+---------------------
+ Marketing   |  64000.000000000000
+ Engineering | 101000.000000000000
+ Sales       |  50333.333333333333
+ HR          |  45000.000000000000
+(4 rows)
+
+
+lab13=#
+lab13=# -- From lab. Window: every row stays, with the department average
+lab13=# SELECT
+lab13-#     employee_id,
+lab13-#     first_name,
+lab13-#     department,
+lab13-#     salary,
+lab13-#     AVG(salary) OVER (PARTITION BY department) AS dept_avg_salary
+lab13-# FROM employees;
+ employee_id | first_name | department  |  salary   |   dept_avg_salary
+-------------+------------+-------------+-----------+---------------------
+           7 | Alina      | Engineering | 120000.00 | 101000.000000000000
+           9 | Nurlan     | Engineering |  98000.00 | 101000.000000000000
+           8 | Timur      | Engineering |  85000.00 | 101000.000000000000
+          11 | Saule      | HR          |  43000.00 |  45000.000000000000
+          10 | Zarina     | HR          |  47000.00 |  45000.000000000000
+          12 | Maksat     | Marketing   |  64000.00 |  64000.000000000000
+           6 | Kanat      | Sales       |  57000.00 |  50333.333333333333
+           5 | Gulnara    | Sales       |  39000.00 |  50333.333333333333
+           4 | Erlan      | Sales       |  61000.00 |  50333.333333333333
+           3 | Dana       | Sales       |  48000.00 |  50333.333333333333
+           2 | Bermet     | Sales       |  52000.00 |  50333.333333333333
+           1 | Aibek      | Sales       |  45000.00 |  50333.333333333333
+(12 rows)
+
+
+lab13=#
+lab13=# -- ===== 11. Handling NULL values =====
+lab13=# -- From lab. COUNT(*) includes NULLs, COUNT(column) excludes them
+lab13=# SELECT
+lab13-#     COUNT(*) AS total_rows,
+lab13-#     COUNT(email) AS non_null_emails,
+lab13-#     COUNT(*) - COUNT(email) AS null_emails
+lab13-# FROM employees;
+ total_rows | non_null_emails | null_emails
+------------+-----------------+-------------
+         12 |               9 |           3
+(1 row)
+
+
+lab13=#
+lab13=# -- From lab. SUM, AVG, MAX, MIN ignore NULL values
+lab13=# SELECT
+lab13-#     SUM(bonus) AS total_bonus,
+lab13-#     AVG(bonus) AS avg_bonus,
+lab13-#     COUNT(bonus) AS employees_with_bonus
+lab13-# FROM employees;
+ total_bonus |       avg_bonus       | employees_with_bonus
+-------------+-----------------------+----------------------
+    31500.00 | 3937.5000000000000000 |                    8
+(1 row)
+
+
+lab13=#
+lab13=# -- Check: AVG(bonus) divides by 8 (non-NULL), not by 12 (all rows)
+lab13=# SELECT SUM(bonus) / COUNT(bonus) AS avg_ignoring_nulls,
+lab13-#        SUM(bonus) / COUNT(*)     AS avg_with_nulls_as_zero
+lab13-# FROM employees;
+  avg_ignoring_nulls   | avg_with_nulls_as_zero
+-----------------------+------------------------
+ 3937.5000000000000000 |  2625.0000000000000000
+(1 row)
+
+
+lab13=#
+lab13=# -- ===== 12. Common patterns =====
+lab13=# -- From lab. Combining multiple aggregations
+lab13=# SELECT
+lab13-#     department,
+lab13-#     COUNT(*) AS employee_count,
+lab13-#     MIN(salary) AS min_salary,
+lab13-#     MAX(salary) AS max_salary,
+lab13-#     AVG(salary) AS avg_salary,
+lab13-#     STDDEV(salary) AS salary_std_dev
+lab13-# FROM employees
+lab13-# GROUP BY department
+lab13-# ORDER BY avg_salary DESC;
+ department  | employee_count | min_salary | max_salary |     avg_salary      |  salary_std_dev
+-------------+----------------+------------+------------+---------------------+-------------------
+ Engineering |              3 |   85000.00 |  120000.00 | 101000.000000000000 |    17691.80601295
+ Marketing   |              1 |   64000.00 |   64000.00 |  64000.000000000000 |
+ Sales       |              6 |   39000.00 |   61000.00 |  50333.333333333333 | 8041.558721209879
+ HR          |              2 |   43000.00 |   47000.00 |  45000.000000000000 | 2828.427124746190
+(4 rows)
+
+
+lab13=#
+lab13=# -- From lab. Conditional aggregation
+lab13=# SELECT
+lab13-#     department,
+lab13-#     COUNT(*) AS total_employees,
+lab13-#     COUNT(CASE WHEN salary > 50000 THEN 1 END) AS high_earners,
+lab13-#     COUNT(CASE WHEN hire_date > '2023-01-01' THEN 1 END) AS recent_hires
+lab13-# FROM employees
+lab13-# GROUP BY department;
+ department  | total_employees | high_earners | recent_hires
+-------------+-----------------+--------------+--------------
+ Marketing   |               1 |            1 |            0
+ Engineering |               3 |            3 |            1
+ Sales       |               6 |            3 |            3
+ HR          |               2 |            0 |            1
+(4 rows)
+
+
+lab13=#
+lab13=# -- From lab. Percentage of total
+lab13=# SELECT
+lab13-#     department,
+lab13-#     COUNT(*) AS dept_count,
+lab13-#     COUNT(*)::FLOAT / (SELECT COUNT(*) FROM employees) * 100 AS percentage
+lab13-# FROM employees
+lab13-# GROUP BY department
+lab13-# ORDER BY percentage DESC;
+ department  | dept_count |     percentage
+-------------+------------+--------------------
+ Sales       |          6 |                 50
+ Engineering |          3 |                 25
+ HR          |          2 | 16.666666666666664
+ Marketing   |          1 |  8.333333333333332
+(4 rows)
+
+
+lab13=#
+lab13=# -- ===== MY EXAMPLES (retail) =====
+lab13=# -- My example 1: store performance report
+lab13=# -- Revenue, number of sales, average check and share of total revenue for each store
+lab13=# SELECT
+lab13-#     store,
+lab13-#     COUNT(*) AS sales_count,
+lab13-#     SUM(amount) AS revenue,
+lab13-#     ROUND(AVG(amount), 2) AS avg_check,
+lab13-#     ROUND(SUM(amount) * 100 / (SELECT SUM(amount) FROM sales), 1) AS revenue_share_pct,
+lab13-#     SUM(CASE WHEN EXTRACT(YEAR FROM sale_date) = 2026 THEN amount ELSE 0 END) AS revenue_2026
+lab13-# FROM sales
+lab13-# GROUP BY store
+lab13-# HAVING SUM(amount) > 5000
+lab13-# ORDER BY revenue DESC;
+  store   | sales_count | revenue  | avg_check | revenue_share_pct | revenue_2026
+----------+-------------+----------+-----------+-------------------+--------------
+ Almaty   |           4 | 14840.00 |   3710.00 |              44.7 |      9000.00
+ Bishkek  |           5 | 11240.00 |   2248.00 |              33.8 |      2190.00
+ Tashkent |           3 |  7150.00 |   2383.33 |              21.5 |      6300.00
+(3 rows)
+
+
+lab13=#
+lab13=# -- My example 2: revenue by category with running total (aggregate + window function)
+lab13=# SELECT
+lab13-#     p.category,
+lab13-#     SUM(s.amount) AS category_revenue,
+lab13-#     STRING_AGG(DISTINCT s.store, ', ') AS stores,
+lab13-#     SUM(SUM(s.amount)) OVER (ORDER BY SUM(s.amount) DESC) AS running_total
+lab13-# FROM sales s
+lab13-# JOIN products p ON s.product_id = p.product_id
+lab13-# GROUP BY p.category
+lab13-# ORDER BY category_revenue DESC;
+  category   | category_revenue |          stores           | running_total
+-------------+------------------+---------------------------+---------------
+ Electronics |         21500.00 | Almaty, Bishkek, Tashkent |      21500.00
+ Grocery     |          7980.00 | Almaty, Bishkek, Tashkent |      29480.00
+ Clothing    |          3750.00 | Almaty, Bishkek           |      33230.00
+(3 rows)
+
+
+lab13=#
+lab13=# -- All tables used in this lab
+lab13=# \dt
+               List of tables
+ Schema |      Name       | Type  |  Owner
+--------+-----------------+-------+----------
+ public | employee_skills | table | postgres
+ public | employees       | table | postgres
+ public | product_reviews | table | postgres
+ public | products        | table | postgres
+ public | sales           | table | postgres
+ public | sales_data      | table | postgres
+(6 rows)
+
+
+lab13=#
+lab13=# \q
